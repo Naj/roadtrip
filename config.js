@@ -1,5 +1,5 @@
 // =====================================================================
-//  ROADTRIP — réglages
+//  OS Corsica Connect — réglages
 //  C'est le SEUL fichier à modifier après le déploiement.
 //  Laisse SUPABASE_URL vide pour tester l'appli en mode démo.
 // =====================================================================
@@ -10,9 +10,6 @@ window.OSCC_CONFIG = {
 
   // Clé PUBLIQUE générée avec tools/vapid.html
   VAPID_PUBLIC_KEY: "",
-
-  // Fin de l'URL de la fonction d'envoi (Edge Functions > colonne URL, après /functions/v1/)
-  PUSH_FUNCTION: "send-push",
 
   // Le voyage
   TRAVELER_NAME: "Antoine",           // prénom du voyageur

@@ -1,13 +1,12 @@
 // =====================================================================
-//  ROADTRIP — Edge Function « send-push »
+//  OS Corsica Connect — Edge Function « send-push »
 //  1. Appelée par un Database Webhook à chaque nouveau message :
 //   - message du voyageur      → tout le groupe
 //   - message du groupe        → personne : il part dans le courrier du mois
 //   - SOS                      → tout le monde (notification persistante)
 //   - réponse à un SOS         → tout le monde, voyageur compris (coordination)
 //  2. Appelée le 1er de chaque mois par une tâche planifiée ({"type":"MONTHLY"}) :
-//   signale au voyageur que du courrier l'attend (seulement s'il a activé les notifications),
-//   et prévient le groupe que le courrier est parti. Le voyageur l'ouvre quand il veut.
+//   annonce au voyageur que son courrier est arrivé, et prévient le groupe.
 //
 //  Secrets à déclarer (Edge Functions > Secrets) :
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (ex. mailto:toi@exemple.fr),
@@ -159,13 +158,13 @@ async function monthlyMail() {
   const name = travelers[0].name;
 
   await pushTo(travelers.map((t) => t.id), {
-    title: `📬 Du courrier t'attend`,
-    body: `${detail} du groupe. À ouvrir quand tu veux, aucune réponse attendue.`,
+    title: `📬 Ton courrier de ${month} est arrivé`,
+    body: `${detail} de ${senders} collègue${senders > 1 ? "s" : ""}. Bonne lecture !`,
     tag: `courrier-${month}`, url: "./",
   });
   return pushTo(group, {
-    title: `📬 Le courrier de ${month} est parti`,
-    body: `${mail.length} envois de ${senders} collègue${senders > 1 ? "s" : ""}. ${name} l'ouvrira s'il le souhaite.`,
+    title: `📬 ${name} a reçu le courrier de ${month}`,
+    body: `${mail.length} envois de ${senders} collègue${senders > 1 ? "s" : ""} viennent de s'ouvrir.`,
     tag: `courrier-${month}`, url: "./",
   });
 }

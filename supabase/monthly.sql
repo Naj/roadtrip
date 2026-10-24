@@ -1,5 +1,5 @@
 -- =====================================================================
---  ROADTRIP — levée du courrier, le 1er de chaque mois
+--  OS Corsica Connect — levée du courrier, le 1er de chaque mois
 --  À exécuter une seule fois dans : Supabase > SQL Editor, APRÈS avoir activé
 --  les extensions pg_cron et pg_net (Database > Extensions).
 --

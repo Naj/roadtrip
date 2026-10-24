@@ -1,5 +1,5 @@
 /* =====================================================================
-   ROADTRIP — application
+   OS Corsica Connect — application
    Deux modes :
    - réel  : config.js rempli (Supabase + VAPID) → données partagées, notifications
    - démo  : config.js vide, ou adresse terminée par #demo → données d'exemple en mémoire
@@ -17,19 +17,13 @@
   // Référentiels
   // ---------------------------------------------------------------------
   const POKES = [
-    { id: 'pense',   emo: '💭', label: 'On pense à toi',    verb: 'pense à toi' },
-    { id: 'courage', emo: '💪', label: 'Courage',           verb: "t'envoie du courage" },
-    { id: 'om',      emo: '⚽', label: "L'OM se maintient", verb: "t'annonce que l'OM se maintient" },
-    { id: 'amuse',   emo: '🎉', label: 'Amuse-toi bien',    verb: 'te souhaite de bien t\'amuser' },
-    { id: 'salut',   emo: '👋', label: 'On te salue',       verb: 'te salue' },
+    { id: 'pense',   emo: '💭', label: 'Je pense à toi',       verb: 'pense à toi' },
+    { id: 'cafe',    emo: '☕', label: 'Café',                 verb: "t'offre un café" },
+    { id: 'calin',   emo: '🤗', label: 'Câlin',                verb: "t'envoie un câlin" },
+    { id: 'courage', emo: '💪', label: 'Courage',              verb: "t'envoie du courage" },
+    { id: 'bureau',  emo: '😂', label: 'Tu manques au bureau', verb: 'dit que tu manques au bureau' },
   ];
-  // Anciens pokes, gardés seulement pour afficher les messages déjà envoyés
-  const OLD_POKES = [
-    { id: 'cafe',   emo: '☕', label: 'Café',                 verb: "t'offre un café" },
-    { id: 'calin',  emo: '🤗', label: 'Câlin',                verb: "t'envoie un câlin" },
-    { id: 'bureau', emo: '😂', label: 'Tu manques au bureau', verb: 'dit que tu manques au bureau' },
-  ];
-  const POKE = Object.fromEntries([...POKES, ...OLD_POKES].map((p) => [p.id, p]));
+  const POKE = Object.fromEntries(POKES.map((p) => [p.id, p]));
 
   // Numéros d'urgence — à revérifier avant le départ sur diplomatie.gouv.fr (Conseils aux voyageurs)
   const COUNTRIES = {
@@ -177,7 +171,7 @@
     const travelerName = CFG.TRAVELER_NAME || 'Antoine';
     const crew = ['Sophie', 'Karim', 'Julie', 'Marc', 'Inès', 'Thomas', 'Léa', 'Yanis', 'Camille', 'Hugo', 'Sarah', 'Nicolas', 'Emma', 'Mehdi', 'Laura', 'Romain', 'Chloé', 'Paul'];
     const members = [
-      { id: 'u-me', name: 'Toi', role: 'groupe', is_admin: true },
+      { id: 'u-me', name: 'Toi', role: 'groupe' },
       { id: 'u-trav', name: travelerName, role: 'voyageur' },
       ...crew.map((n, i) => ({ id: `u-${i}`, name: n, role: 'groupe' })),
     ];
@@ -206,32 +200,32 @@
     add(T, prev(5, 12), { kind: 'checkin', body: 'Bangkok', country: 'TH', lat: 13.7563, lng: 100.5018, accuracy: 18, battery: 92 });
     add(T, prev(5, 14), { kind: 'photo', body: 'Premier pad thaï au marché de nuit, je valide.', photo_url: P.thai });
     add('u-0', prev(6, 8), { body: 'Bon voyage Antoine ! Le bureau est déjà beaucoup trop calme sans toi.' });
-    add('u-1', prev(6, 9), { kind: 'poke', poke: 'pense' });
+    add('u-1', prev(6, 9), { kind: 'poke', poke: 'cafe' });
     add('u-2', prev(9, 16), { kind: 'photo', body: 'On arrose ta plante tous les lundis. Elle te passe le bonjour.', photo_url: P.plante });
     add('u-3', prev(12, 11), { body: 'Tu nous dois une carte postale de chaque pays. Une vraie, avec un timbre !' });
     add(T, prev(13, 9), { kind: 'checkin', body: 'Chiang Mai', country: 'TH', lat: 18.7883, lng: 98.9853, accuracy: 22, battery: 71 });
-    add('u-4', prev(15, 18), { kind: 'poke', poke: 'salut' });
+    add('u-4', prev(15, 18), { kind: 'poke', poke: 'calin' });
     add('u-6', prev(18, 10), { kind: 'poke', poke: 'courage' });
     add(T, prev(22, 7), { kind: 'checkin', body: 'Luang Prabang', country: 'LA', lat: 19.8856, lng: 102.1347, accuracy: 30, battery: 64 });
     const mekong = add(T, prev(22, 8), { kind: 'photo', body: 'Lever de soleil sur le Mékong. 5 h du matin, ça valait le coup.', photo_url: P.mekong });
     add('u-5', prev(23, 9), { body: "Ce lever de soleil… Je l'ai mis en fond d'écran, toute l'équipe est jalouse.", reply_to: mekong.id });
-    add('u-7', prev(25, 15), { kind: 'poke', poke: 'om' });
-    add('u-8', prev(26, 9), { kind: 'poke', poke: 'amuse' });
+    add('u-7', prev(25, 15), { kind: 'poke', poke: 'bureau' });
+    add('u-8', prev(26, 9), { kind: 'poke', poke: 'cafe' });
     add('u-9', prev(27, 17), { kind: 'photo', body: 'Le pot de rentrée, version sans toi. On a gardé ta chaise.', photo_url: P.pot });
     const firstMonth = add('u-0', prev(28, 18), { body: 'Premier mois bouclé ! Profite de chaque jour, on a hâte de lire la suite.' });
     // Le mois en cours (sous enveloppe pour Antoine)
     add(T, cur(0.04), { body: `Je viens d'ouvrir le courrier de ${prevName}. J'ai eu les larmes aux yeux, merci à tous 🙏`, reply_to: firstMonth.id });
     add(T, cur(0.25), { kind: 'checkin', body: 'Hanoï', country: 'VN', lat: 21.0278, lng: 105.8342, accuracy: 15, battery: 80 });
     add('u-1', cur(0.35), { body: 'On a gagné le challenge du trimestre ! On te garde ta part de gâteau 🎂' });
-    add('u-2', cur(0.45), { kind: 'poke', poke: 'salut' });
+    add('u-2', cur(0.45), { kind: 'poke', poke: 'calin' });
     add('u-10', cur(0.55), { body: 'Le distributeur de café du 2e est enfin réparé. On a pensé à toi au premier expresso.' });
     add('u-0', cur(0.65), { kind: 'photo', body: "La photo d'équipe de vendredi. Tu étais là en carton 😄", photo_url: P.team });
-    add('u-5', cur(0.75), { kind: 'poke', poke: 'om' });
+    add('u-5', cur(0.75), { kind: 'poke', poke: 'bureau' });
     add('u-12', cur(0.8), { kind: 'poke', poke: 'courage' });
     add(T, recent(5, 0.85), { kind: 'checkin', body: "Baie d'Ha Long", country: 'VN', lat: 20.9101, lng: 107.1839, accuracy: 25, battery: 58 });
     const halong = add(T, recent(4.8, 0.86), { kind: 'photo', body: 'Nuit sur un bateau au milieu des pitons. Irréel.', photo_url: P.halong });
     add('u-13', recent(1, 0.95), { body: 'Ha Long, sérieusement ? Garde-moi une place sur le bateau.', reply_to: halong.id });
-    add('u-3', recent(0.5, 0.97), { kind: 'poke', poke: 'amuse' });
+    add('u-3', recent(0.5, 0.97), { kind: 'poke', poke: 'cafe' });
     msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     const decorate = (m) => ({ ...m, author_name: by(m.author_id)?.name ?? '?', author_role: by(m.author_id)?.role ?? 'groupe' });
 
@@ -239,8 +233,6 @@
     let role = store.get('oscc-demo-role') || 'groupe';
     const meFor = (r) => (r === 'voyageur' ? by('u-trav') : by('u-me'));
     let pushOn = false;
-    const removed = new Map();
-    const codes = { groupe: 'GRP-7F3A91C2', voyageur: 'VOY-4B8E2D10', admin: 'ADM-9C61F5A7' };
 
     return {
       demo: true,
@@ -248,8 +240,7 @@
       get me() { return meFor(role); },
       setRole(r) { role = r; store.set('oscc-demo-role', r); },
       async init() { return meFor(role); },
-      isRemoved: (id) => removed.has(id),
-      async members() { return members.filter((m) => !removed.has(m.id)); },
+      async members() { return members; },
       async list() { return msgs.map(decorate); },
       onMessage(cb) { listeners.add(cb); },
       async send(fields) {
@@ -269,59 +260,12 @@
       pushStatus: async () => (pushOn ? 'on' : 'off'),
       async enablePush() { pushOn = true; },
       async sealedSummary() { return null; },
-      async join(code) { role = /^VOY/i.test(String(code).trim()) ? 'voyageur' : 'groupe'; store.set('oscc-demo-role', role); return meFor(role); },
-      async signOut() { pushOn = false; },
-      async adminStatus() {
-        const ago2 = new Date(nowMs() - 2 * 3600e3).toISOString();
-        return {
-          st: { schema: true, bucket: true, realtime: true, webhook: true, pg_cron: true, pg_net: true, cron_job: null, cron_last: null,
-            traveler: !removed.has('u-trav'), members: members.length - removed.size, devices: 14 + (pushOn ? 1 : 0),
-            events: { webhook: { at: ago2, ok: true, detail: 'Message reçu' } } },
-          ping: { ok: true, vapid: true, vapidMatch: true, secret: true },
-        };
-      },
-      async adminMembers() {
-        return members.map((m, i) => ({ ...m, is_admin: !!m.is_admin, created_at: new Date(Date.UTC(2026, 9, 2 + (i % 9), 9)).toISOString(),
-          removed_at: removed.get(m.id) || null, devices: m.id === 'u-me' ? (pushOn ? 1 : 0) : removed.has(m.id) ? 0 : i % 4 === 0 ? 0 : 1 }));
-      },
-      async adminRemove(id) { removed.set(id, new Date(nowMs()).toISOString()); },
-      async adminRestore(id) { removed.delete(id); },
-      async adminCodes() { return Object.entries(codes).map(([role, code]) => ({ role, code })); },
-      async adminRegenerate(r) { codes[r] = `${{ groupe: 'GRP', voyageur: 'VOY', admin: 'ADM' }[r]}-${Math.random().toString(16).slice(2, 10).toUpperCase()}`; return codes[r]; },
-      async adminReset() { /* démo : rien n'est effacé */ },
-      async adminTestPush() { return pushOn ? { sent: 1, total: 1 } : { sent: 0, total: 0 }; },
     };
   }
 
   // ---------------------------------------------------------------------
   // Données : mode réel (Supabase)
   // ---------------------------------------------------------------------
-  // Traduit l'erreur de connexion de Supabase en consigne claire
-  function explainAuthError(error) {
-    const msg = String(error?.message || '');
-    const status = error?.status;
-    if (/anonymous sign-ins are disabled/i.test(msg)) return "Connexions anonymes désactivées : active « Allow anonymous sign-ins » dans Authentication > Sign In / Providers, puis clique sur Save changes en bas de la page.";
-    if (/captcha/i.test(msg)) return "La protection captcha bloque la connexion : désactive-la dans Authentication > Attack Protection.";
-    if (status === 429 || /rate limit|too many/i.test(msg)) return "Trop de tentatives de connexion pour l'instant. Attends une heure, ou augmente la limite dans Authentication > Rate Limits.";
-    if (status === 401 || /invalid api key|jwt|apikey/i.test(msg)) return "La clé SUPABASE_ANON_KEY de config.js est refusée. Recopie la clé « anon public » (elle commence par eyJ) depuis Project Settings > API.";
-    if (!status || /failed to fetch|network|load failed/i.test(msg)) return "Impossible de joindre Supabase. Vérifie SUPABASE_URL dans config.js et que le projet n'est pas en pause.";
-    return `Connexion impossible (${status || '?'}) : ${msg}`;
-  }
-
-  // Appel « simple » de la fonction send-push : sans en-tête particulier, le navigateur
-  // n'envoie pas de pré-vérification CORS, ce qui évite la plupart des blocages.
-  async function callFn(body) {
-    try {
-      const res = await fetch(`${CFG.SUPABASE_URL}/functions/v1/${CFG.PUSH_FUNCTION || 'send-push'}`, { method: 'POST', body: JSON.stringify(body) });
-      const text = await res.text();
-      let data = null;
-      try { data = JSON.parse(text); } catch { /* réponse texte */ }
-      return { status: res.status, text, data };
-    } catch (err) {
-      return { failed: true, text: String(err?.message || err) };
-    }
-  }
-
   function SupaStore() {
     const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
     const SELECT = '*, author:members(name, role)';
@@ -345,39 +289,23 @@
       async init() {
         const { data: { session } } = await sb.auth.getSession();
         if (!session) return null;
-        const { data } = await sb.from('members').select('id, name, role, is_admin, removed_at').eq('id', session.user.id).maybeSingle();
-        me = data && !data.removed_at ? data : null;
+        const { data } = await sb.from('members').select('id, name, role').eq('id', session.user.id).maybeSingle();
+        me = data || null;
         return me;
       },
       async join(code, name) {
-        if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(CFG.SUPABASE_URL)) {
-          throw new Error("SUPABASE_URL est mal écrite dans config.js. Format attendu : https://xxxx.supabase.co (sans / à la fin).");
-        }
-        const freshSession = async () => {
-          await sb.auth.signOut({ scope: 'local' }).catch(() => {});
-          const { error } = await sb.auth.signInAnonymously();
-          if (error) throw new Error(explainAuthError(error));
-        };
-        // Une session gardée sur ce téléphone peut viser un compte effacé (après une remise à zéro) : on la vérifie
         const { data: { session } } = await sb.auth.getSession();
-        if (!session) await freshSession();
-        else {
-          const { error: userErr } = await sb.auth.getUser();
-          if (userErr) await freshSession();
+        if (!session) {
+          const { error } = await sb.auth.signInAnonymously();
+          if (error) throw new Error("Connexion impossible. Vérifie que « Anonymous sign-ins » est activé dans Supabase.");
         }
-        let { error } = await sb.rpc('join_group', { p_code: code, p_name: name });
-        if (error && /members_id_fkey|foreign key|JWT|not found/i.test(error.message)) {
-          await freshSession();
-          ({ error } = await sb.rpc('join_group', { p_code: code, p_name: name }));
-        }
-        if (error) throw new Error(/function|schema cache/i.test(error.message)
-          ? "La base n'est pas prête : exécute supabase/schema.sql dans le SQL Editor."
-          : error.message);
+        const { error } = await sb.rpc('join_group', { p_code: code, p_name: name });
+        if (error) throw new Error(error.message);
         return this.init();
       },
       async members() {
-        const { data } = await sb.from('members').select('id, name, role, removed_at');
-        return (data || []).filter((m) => !m.removed_at);
+        const { data } = await sb.from('members').select('id, name, role');
+        return data || [];
       },
       async list() {
         const { data, error } = await sb.from('messages').select(SELECT).order('created_at', { ascending: false }).limit(400);
@@ -431,49 +359,6 @@
         if (error) throw new Error("L'abonnement n'a pas pu être enregistré.");
       },
       // Pour le voyageur : nombre de messages encore sous enveloppe (sans leur contenu)
-      async signOut() {
-        try {
-          const reg = await navigator.serviceWorker?.getRegistration();
-          const sub = reg && (await reg.pushManager.getSubscription());
-          if (sub) { await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
-        } catch { /* on continue la déconnexion */ }
-        await sb.auth.signOut();
-        me = null;
-      },
-      async adminStatus() {
-        const [st, ping] = await Promise.all([sb.rpc('admin_status'), callFn({ type: 'PING', vapidPublic: CFG.VAPID_PUBLIC_KEY })]);
-        let pingErr = null;
-        if (ping.failed) pingErr = 'blocked';
-        else if (ping.status === 401) pingErr = /Accès refusé/.test(ping.text) ? 'old' : 'jwt';
-        else if (ping.status === 404) pingErr = 'missing';
-        else if (ping.status >= 400 || !ping.data?.ok) pingErr = `http-${ping.status}`;
-        return { st: st.data, stErr: st.error?.message, ping: pingErr ? null : ping.data, pingErr, pingDetail: (ping.text || '').slice(0, 160) };
-      },
-      async adminMembers() { const { data, error } = await sb.rpc('admin_members'); if (error) throw error; return data; },
-      async adminRemove(id) { const { error } = await sb.rpc('admin_remove_member', { p_id: id }); if (error) throw error; },
-      async adminRestore(id) { const { error } = await sb.rpc('admin_restore_member', { p_id: id }); if (error) throw error; },
-      async adminCodes() { const { data, error } = await sb.rpc('admin_codes'); if (error) throw error; return data; },
-      async adminRegenerate(r) { const { data, error } = await sb.rpc('admin_regenerate_code', { p_role: r }); if (error) throw error; return data; },
-      async adminTestPush() {
-        const { data: { session } } = await sb.auth.getSession();
-        const r = await callFn({ type: 'TEST_PUSH', token: session?.access_token });
-        if (r.failed || !r.data) throw new Error('La fonction send-push n\'a pas répondu : consulte l\'état de l\'installation.');
-        if (r.data.error) throw new Error(r.data.error);
-        if (typeof r.data.sent !== 'number') throw new Error('Réponse inattendue de la fonction : consulte l\'état de l\'installation.');
-        return r.data;
-      },
-      async adminReset(confirm) {
-        // Photos d'abord (un dossier par membre), puis les données
-        const bucket = sb.storage.from('photos');
-        const { data: folders } = await bucket.list('', { limit: 1000 });
-        for (const f of folders || []) {
-          const { data: files } = await bucket.list(f.name, { limit: 1000 });
-          const paths = (files || []).map((x) => `${f.name}/${x.name}`);
-          if (paths.length) await bucket.remove(paths);
-        }
-        const { error } = await sb.rpc('admin_reset', { p_confirm: confirm });
-        if (error) throw error;
-      },
       async sealedSummary() {
         if (me?.role !== 'voyageur') return null;
         const { data } = await sb.rpc('sealed_summary');
@@ -488,7 +373,7 @@
   // ---------------------------------------------------------------------
   const db = DEMO ? DemoStore() : SupaStore();
   const S = {
-    me: null, members: [], messages: [], tab: 'pays', adm: { loading: false, checks: null, members: [], codes: [], ask: null }, expanded: null, writeOpen: false, replyTo: null, draft: '',
+    me: null, members: [], messages: [], tab: 'fil', replyTo: null, draft: '',
     country: store.get('oscc-country') || '', push: 'off', sos: { phase: 'idle' }, installEvt: null,
   };
   const isTraveler = () => S.me?.role === 'voyageur';
@@ -511,6 +396,12 @@
     const helpers = S.messages.filter((m) => m.reply_to === sos.id && m.author_role === 'groupe').map((m) => m.author_name);
     return { sos, helpers: [...new Set(helpers)] };
   }
+  function freshness() {
+    const last = lastTravelerMsg();
+    if (!last) return 'none';
+    const h = (nowMs() - new Date(last.created_at)) / 3600e3;
+    return h < 48 ? 'ok' : h < 96 ? 'warn' : 'late';
+  }
   function tripDay() {
     const start = db.tripStart ? new Date(db.tripStart) : null;
     if (!start || isNaN(start)) return null;
@@ -531,10 +422,9 @@
     const country = COUNTRIES[currentCountry()];
     const lt = localTime(currentCountry());
     const td = tripDay();
-    const where = place ? `${esc(place)}${country ? `, ${country.name}` : ''}` : country ? country.name : '';
-    const news = isTraveler()
-      ? (where ? `En ce moment : ${where}` : 'Bon voyage !')
-      : (where ? `Dernière étape partagée : ${where}` : last ? 'En voyage' : 'Pas encore parti');
+    const fresh = freshness();
+    const who = isTraveler() ? 'Ta dernière nouvelle' : 'Dernières nouvelles';
+    const news = last ? `${who} ${ago(last.created_at)}${place ? ` · ${esc(place)}${country ? `, ${country.name}` : ''}` : ''}` : 'Pas encore de nouvelles';
     let dayLine = '';
     if (td) {
       dayLine = td.d < 0 ? `Départ dans ${-td.d} jour${-td.d > 1 ? 's' : ''}` : `J+${td.d} / ${td.total}`;
@@ -545,13 +435,13 @@
       <div class="sky">
         <div class="brand">
           <img src="${LOGO}" alt="" width="30" height="30">
-          <h1>ROADTRIP<small>${DEMO ? 'Mode démo' : isTraveler() ? 'Espace voyageur' : `${S.members.length || ''} membres`}</small></h1>
+          <h1>OS Corsica Connect<small>${DEMO ? 'Mode démo' : isTraveler() ? 'Espace voyageur' : `${S.members.length || ''} membres`}</small></h1>
           ${DEMO ? `<div class="pill-switch" role="group" aria-label="Voir l'appli en tant que">
             <button type="button" data-role="groupe" aria-pressed="${!isTraveler()}">Groupe</button>
             <button type="button" data-role="voyageur" aria-pressed="${isTraveler()}">Voyageur</button></div>` : ''}
         </div>
         <div class="traveler">
-          <div class="avatar" aria-hidden="true">${esc((name || '?').charAt(0).toUpperCase())}</div>
+          <div class="avatar" data-fresh="${fresh}" aria-hidden="true">${esc((name || '?').charAt(0).toUpperCase())}</div>
           <div class="traveler-meta">
             <strong>${esc(name)}</strong>
             <span>${news}</span>
@@ -568,11 +458,13 @@
     if (act && !isTraveler()) {
       const help = act.helpers.length ? ` · ${esc(act.helpers.join(', '))} s'en occupe` : ' · personne ne s\'en occupe encore';
       out.push(`<p class="banner sos" role="alert">🚨 SOS de ${esc(travelerName())} ${ago(act.sos.created_at)}${help}<button type="button" data-goto="${act.sos.id}">Voir</button></p>`);
+    } else if (!isTraveler() && freshness() === 'late') {
+      out.push(`<p class="banner warn">Aucune nouvelle de ${esc(travelerName())} depuis plus de 4 jours. Un référent peut essayer de le joindre.</p>`);
     }
-    if (!isTraveler() && S.push !== 'on' && S.push !== 'unsupported') {
+    if (S.push !== 'on' && S.push !== 'unsupported') {
       const txt = S.push === 'denied'
         ? 'Notifications bloquées : autorise-les dans les réglages du site, puis recharge.'
-        : 'Sois prévenu en cas d\'alerte SOS.';
+        : isTraveler() ? 'Sois prévenu le 1er du mois, quand ton courrier arrive.' : 'Sois prévenu des nouvelles et des alertes.';
       out.push(`<p class="banner warn"><span>${txt}</span>${S.push === 'denied' ? '' : '<button type="button" class="btn small jade" data-act="push">Activer les notifications</button>'}</p>`);
     }
     $('#bnr').innerHTML = out.join('');
@@ -587,7 +479,7 @@
     if (m.kind === 'poke') {
       const p = POKE[m.poke] || POKE.pense;
       const who = mine ? 'Tu' : esc(m.author_name);
-      const text = isTraveler() ? `<b>${who}</b> ${p.verb}` : `<b>${who}</b> → ${esc(travelerName())} : ${p.label}`;
+      const text = isTraveler() ? `<b>${who}</b> ${p.verb}` : `<b>${who}</b> → ${esc(travelerName())} : ${p.label.toLowerCase()}`;
       return `<div class="poke-line" id="m-${m.id}"><span class="emo" aria-hidden="true">${p.emo}</span><span>${text}</span><time>${t}</time>${sealTag(m, true)}</div>`;
     }
     if (m.kind === 'checkin') {
@@ -626,8 +518,8 @@
   function sealTag(m, short = false) {
     if (isTraveler() || !isMail(m)) return '';
     const k = openingOf(m.created_at);
-    if (isSealed(m)) return `<span class="seal-tag" title="Part dans le courrier du ${openShort(k)}">${I.lock}${short ? '' : `<span>Courrier du ${openShort(k)}</span>`}</span>`;
-    return short ? '' : `<span class="seal-tag open">Distribué le ${openShort(k)}</span>`;
+    if (isSealed(m)) return `<span class="seal-tag" title="Sous enveloppe jusqu'au ${openShort(k)}">${I.lock}${short ? '' : `<span>Ouverture le ${openShort(k)}</span>`}</span>`;
+    return short ? '' : `<span class="seal-tag open">Ouvert le ${openShort(k)}</span>`;
   }
 
   function feedHtml() {
@@ -704,50 +596,50 @@
     return `<ul class="poke-sum" aria-label="Pokes du mois">${rows}</ul>`;
   }
 
-  // Cartes postales, côté voyageur : une fonction discrète, rien n'est imposé.
-  // Le courrier arrive le 1er du mois ; il ne s'ouvre que si le voyageur le décide.
-  const OPENED_KEY = 'rt-opened';
-  const openedSet = () => { try { return new Set(JSON.parse(store.get(OPENED_KEY) || '[]')); } catch { return new Set(); } };
-  function markOpened(k) { const s = openedSet(); s.add(String(k)); store.set(OPENED_KEY, JSON.stringify([...s])); }
-
   function cartesHtml() {
     const next = nextOpening();
-    const opened = openedSet();
+    const left = next - nowMs();
+    const days = Math.ceil(left / 86400e3);
+    const st = sealedStats();
+    const name = travelerName();
+    const countdown = left < 86400e3
+      ? `<b>${Math.max(1, Math.ceil(left / 3600e3))}</b> heure${Math.ceil(left / 3600e3) > 1 ? 's' : ''}`
+      : `<b>${days}</b> jour${days > 1 ? 's' : ''}`;
+    const waiting = st.total
+      ? `${statsLine(st)} t'attend${st.total > 1 ? 'ent' : ''}, de ${st.senders} collègue${st.senders > 1 ? 's' : ''}.`
+      : `Rien dans l'enveloppe de ${monthName(nowMs())} pour l'instant.`;
+
     const open = S.messages.filter((m) => isMail(m) && !isSealed(m));
     const groups = new Map();
     open.forEach((m) => { const k = openingOf(m.created_at); (groups.get(k) || groups.set(k, []).get(k)).push(m); });
-    const batches = [...groups.entries()].sort((a, b) => b[0] - a[0]);
-
-    const rows = batches.map(([k, list]) => {
-      const st = mailStats(list);
-      const isOpen = S.expanded === k;
-      const read = opened.has(String(k));
-      const label = `Courrier ${deName(monthName(k - 86400e3))}`;
-      const head = `<div class="mail-row${read ? ' read' : ''}" id="batch-${k}">
-          <span class="mail-seal" aria-hidden="true">${read ? I.mail : 'RT'}</span>
-          <div class="mail-meta"><strong>${cap(label)}</strong><span>${cap(statsLine(st))}${read ? ' · lu' : ''}</span></div>
-          <button type="button" class="btn small${read ? '' : ' jade'}" data-act="${isOpen ? 'close-batch' : 'open-batch'}" data-k="${k}">${isOpen ? 'Refermer' : read ? 'Relire' : 'Ouvrir'}</button>
-        </div>`;
-      if (!isOpen) return head;
+    const batches = [...groups.entries()].sort((a, b) => b[0] - a[0]).map(([k, list]) => {
+      const bst = mailStats(list);
+      const fresh = nowMs() - k < 7 * 86400e3;
       const cards = list.filter((m) => m.kind !== 'poke').map(postcardHtml).join('');
-      return `<section class="batch">${head}${pokeSummaryHtml(list.filter((m) => m.kind === 'poke'))}<div class="cards">${cards}</div></section>`;
+      return `<section class="batch" id="batch-${k}">
+        <header class="batch-head">
+          <div><span class="eyebrow">Courrier de ${monthName(k - 86400e3)}</span><h3>Ouvert le ${openShort(k)}</h3></div>
+          ${fresh ? '<span class="badge">Nouveau</span>' : ''}
+        </header>
+        <p class="fine">${cap(statsLine(bst))}, de ${bst.senders} collègue${bst.senders > 1 ? 's' : ''}.</p>
+        ${pokeSummaryHtml(list.filter((m) => m.kind === 'poke'))}
+        <div class="cards">${cards}</div>
+      </section>`;
     }).join('');
 
-    const notif = S.push === 'on'
-      ? '<span class="fine">Prévenu à l\'arrivée du courrier.</span>'
-      : S.push === 'unsupported' || S.push === 'denied' ? '' : '<button type="button" class="link-btn" data-act="push">Me prévenir quand le courrier arrive</button>';
-
     return `<div class="mailbox">
-      <p class="mail-intro">Le groupe glisse ici quelques mots de temps en temps. Le courrier arrive le 1er du mois et t'attend : tu l'ouvres quand tu veux, ou pas du tout. Aucune réponse n'est attendue.</p>
-      ${rows || `<p class="card fine">Pas encore de courrier. Le premier arrivera le ${openShort(next)}.</p>`}
-      <div class="mail-options">
-        ${S.writeOpen || S.replyTo ? '' : '<button type="button" class="link-btn" data-act="write">Écrire un mot au groupe</button>'}
-        ${notif}
-      </div>
-      <p class="fine mail-next">Prochain courrier le ${openLong(next)}.</p>
+      <section class="envelope" aria-label="Courrier en attente">
+        <span class="env-seal" aria-hidden="true">OS</span>
+        <span class="eyebrow">Prochaine levée du courrier</span>
+        <h2>${cap(openLong(next))}</h2>
+        <p class="env-count">${countdown}</p>
+        <p>${waiting}</p>
+      </section>
+      <p class="env-note">Les messages du groupe restent sous enveloppe et s'ouvrent tous ensemble le 1er du mois, pour profiter du voyage sans distraction. Les réponses à une alerte SOS, elles, arrivent tout de suite.</p>
       ${DEMO ? `<div class="demo-row">${CLOCK.shift
         ? '<button type="button" class="btn small" data-act="demo-reset">Démo : revenir à aujourd\'hui</button>'
-        : `<button type="button" class="btn small" data-act="demo-skip">Démo : passer au ${openShort(next)}</button>`}</div>` : ''}
+        : `<button type="button" class="btn small jade" data-act="demo-skip">Démo : passer au ${openShort(next)}</button>`}</div>` : ''}
+      ${batches || `<div class="card"><strong>Ton premier courrier arrivera le ${openShort(next)}.</strong><p class="fine">D'ici là, le groupe t'écrit. Profite du voyage.</p></div>`}
     </div>`;
   }
 
@@ -1066,6 +958,11 @@
   function securiteHtml() {
     const sosLabel = { idle: 'Maintiens 3 secondes', holding: 'Continue d\'appuyer…', sending: 'Envoi en cours…', sent: 'Alerte envoyée', failed: 'Échec de l\'envoi' }[S.sos.phase];
     return `<div class="pane">
+      <button type="button" class="ok-btn" data-act="checkin"><strong>Je vais bien ✅</strong><span>Partage ta position et rassure tout le monde.</span></button>
+      <div class="card">
+        <label class="field" for="ok-place">Où es-tu ? (facultatif)<input id="ok-place" type="text" maxlength="60" placeholder="Ex. Luang Prabang" autocomplete="off"></label>
+        <label class="field" for="ok-country">Pays actuel<select id="ok-country">${countryOptions(S.country)}</select></label>
+      </div>
       <h2 class="section-title">Alerte</h2>
       <div class="sos-zone">
         <button type="button" class="sos-btn" id="sos-btn" aria-describedby="sos-help" ${S.sos.phase === 'sending' ? 'disabled' : ''}><span class="core"><b>SOS</b><small>${sosLabel}</small></span></button>
@@ -1078,15 +975,7 @@
       ${numbersHtml(S.country)}
       <h2 class="section-title">Référents en France</h2>
       ${referentsHtml()}
-      <h2 class="section-title">Partager ma position (facultatif)</h2>
-      <div class="card">
-        <p class="fine">Seulement si tu en as envie : le groupe voit ton étape et le pays s'affiche dans l'onglet Pays.</p>
-        <label class="field" for="ok-place">Où es-tu ?<input id="ok-place" type="text" maxlength="60" placeholder="Ex. Luang Prabang" autocomplete="off"></label>
-        <label class="field" for="ok-country">Pays actuel<select id="ok-country">${countryOptions(S.country)}</select></label>
-        <button type="button" class="btn jade" data-act="checkin">Je vais bien, partager mon étape</button>
-      </div>
       ${installCard()}
-      ${accountHtml()}
     </div>`;
   }
 
@@ -1105,7 +994,6 @@
       <h2 class="section-title">Référents</h2>
       ${referentsHtml()}
       ${installCard()}
-      ${accountHtml()}
     </div>`;
   }
 
@@ -1116,7 +1004,6 @@
     if (S.tab === 'fil') main.innerHTML = feedHtml();
     else if (S.tab === 'cartes') main.innerHTML = cartesHtml();
     else if (S.tab === 'pays') main.innerHTML = paysHtml();
-    else if (S.tab === 'admin') main.innerHTML = adminHtml();
     else main.innerHTML = isTraveler() ? securiteHtml() : urgenceHtml();
     if (S.tab === 'fil' && (opts.toBottom || nearBottom)) {
       main.scrollTop = main.scrollHeight;
@@ -1133,15 +1020,15 @@
   // ---------------------------------------------------------------------
   function renderFooter() {
     const tabs = isTraveler()
-      ? [['pays', 'Pays', I.globe], ['securite', 'Sécurité', I.shield], ['cartes', 'Carte postale', I.mail]]
-      : [['pays', 'Pays', I.globe], ['urgence', 'Urgence', I.shield], ['fil', 'Cartes postales', I.mail]];
+      ? [['cartes', 'Cartes', I.mail], ['pays', 'Pays', I.globe], ['securite', 'Sécurité', I.shield]]
+      : [['fil', 'Fil', I.fil], ['pays', 'Pays', I.globe], ['urgence', 'Urgence', I.shield]];
     let composer = '';
-    if (S.tab === 'fil' || (S.tab === 'cartes' && (S.writeOpen || S.replyTo))) {
+    if (S.tab === 'fil' || S.tab === 'cartes') {
       const parent = S.replyTo ? S.messages.find((m) => m.id === S.replyTo) : null;
       const pending = isTraveler() ? 0 : sealedStats().total;
-      const hint = isTraveler() ? '' : `<p class="seal-hint">${I.lock}<span>Part dans le courrier du ${openLong(nextOpening())}${pending ? ` avec ${pending} autre${pending > 1 ? 's' : ''} envoi${pending > 1 ? 's' : ''}` : ''}. ${esc(travelerName())} l'ouvrira s'il le souhaite.</span></p>`;
+      const hint = isTraveler() ? '' : `<p class="seal-hint">${I.lock}<span>${esc(travelerName())} ouvrira ton message le ${openLong(nextOpening())}${pending ? `, avec ${pending} autre${pending > 1 ? 's' : ''} envoi${pending > 1 ? 's' : ''} du groupe` : ''}.</span></p>`;
       const chips = isTraveler()
-        ? `<button type="button" class="chip" data-act="close-write">${I.close} Fermer</button>`
+        ? `<button type="button" class="chip" data-act="checkin">✅ Je vais bien</button><button type="button" class="chip" data-quick="Merci à tous, ça me fait trop plaisir !">🙏 Merci à tous</button>`
         : POKES.map((p) => `<button type="button" class="chip" data-poke="${p.id}"><span aria-hidden="true">${p.emo}</span>${p.label}</button>`).join('');
       composer = `<div class="composer">
         ${parent ? `<div class="reply-to"><span>Réponse à ${esc(parent.author_name)} : ${esc(parent.body || 'Photo')}</span><button type="button" class="link-btn" data-act="cancel-reply" aria-label="Annuler la réponse">${I.close}</button></div>` : ''}
@@ -1159,250 +1046,13 @@
 
   function renderAll(opts) { renderHeader(); renderBanners(); renderMain(opts); renderFooter(); }
 
-  // ---------------------------------------------------------------------
-  // Administration : état de l'installation, membres, codes, remise à zéro
-  // ---------------------------------------------------------------------
-  const ROLE_LABEL = { groupe: 'Groupe', voyageur: 'Voyageur', admin: 'Admin' };
-
-  function buildChecks({ st, stErr, ping, pingErr, pingDetail }) {
-    const list = [];
-    const add = (group, label, state, detail) => list.push({ group, label, state, detail });
-    const evAgo = (e) => (e?.at ? ago(e.at) : '');
-
-    // Appli
-    add('Appli', 'Fichier config.js', DEMO || (CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY) ? 'ok' : 'ko',
-      DEMO || CFG.SUPABASE_URL ? 'Adresse et clé Supabase renseignées.' : 'SUPABASE_URL ou SUPABASE_ANON_KEY est vide (étape 5).');
-    add('Appli', 'Connexion à Supabase', 'ok', 'Tu es connecté : les connexions anonymes fonctionnent.');
-
-    // Base
-    if (stErr || !st) {
-      add('Base de données', 'Script schema.sql', 'ko', 'Les fonctions d\'administration manquent : relance la dernière version de supabase/schema.sql dans le SQL Editor.');
-    } else {
-      add('Base de données', 'Script schema.sql', 'ok', 'Tables, règles d\'accès et codes en place.');
-      add('Base de données', 'Stockage des photos', st.bucket ? 'ok' : 'ko', st.bucket ? 'Le dossier « photos » existe.' : 'Le dossier « photos » manque : relance schema.sql.');
-      add('Base de données', 'Mise à jour en direct', st.realtime ? 'ok' : 'warn', st.realtime ? 'Les nouveaux messages s\'affichent sans recharger.' : 'Relance schema.sql pour activer le temps réel.');
-    }
-
-    // Notifications
-    add('Notifications', 'Clé publique dans config.js', DEMO || CFG.VAPID_PUBLIC_KEY ? 'ok' : 'ko', DEMO || CFG.VAPID_PUBLIC_KEY ? 'VAPID_PUBLIC_KEY renseignée.' : 'VAPID_PUBLIC_KEY est vide dans config.js (étape 5).');
-    if (pingErr === 'old') add('Notifications', 'Fonction send-push', 'ko', 'Une ancienne version est déployée : recolle le nouveau index.ts dans la fonction et redéploie.');
-    else if (pingErr === 'jwt')
-      add('Notifications', 'Fonction send-push', 'ko', 'La fonction tourne (le webhook l\'utilise), mais elle refuse les appels de l\'appli : la vérification JWT est encore activée. Dans Edge Functions > send-push, ouvre les réglages (Details ou Settings), désactive « Enforce JWT verification » (Verify JWT) et enregistre.');
-    else if (pingErr === 'missing') add('Notifications', 'Fonction send-push', 'ko', `Aucune fonction à l'adresse …/functions/v1/${CFG.PUSH_FUNCTION || 'send-push'}. Dans Edge Functions, regarde la fin de l'URL de ta fonction et recopie-la dans PUSH_FUNCTION (config.js).`);
-    else if (pingErr?.startsWith('http-')) add('Notifications', 'Fonction send-push', 'ko', `La fonction plante (erreur ${pingErr.slice(5)}) : ouvre son onglet Logs. Cause fréquente : secrets VAPID absents ou mal copiés.${pingDetail ? ` Détail : ${pingDetail}` : ''}`);
-    else if (pingErr || !ping) add('Notifications', 'Fonction send-push', 'ko', `La fonction ne répond pas à l'adresse …/functions/v1/${CFG.PUSH_FUNCTION || 'send-push'}. Vérifie dans cet ordre : la fin de l'URL de la fonction (Edge Functions) est identique à PUSH_FUNCTION dans config.js ; « Enforce JWT verification » est désactivé ; le nouveau index.ts est déployé.`);
-    else {
-      add('Notifications', 'Fonction send-push', 'ok', 'Déployée et joignable.');
-      add('Notifications', 'Clés VAPID dans les secrets', ping.vapid ? 'ok' : 'ko', ping.vapid ? 'Présentes et valides.' : `Absentes ou invalides (étape 3)${ping.vapidError ? ` : ${ping.vapidError}` : ''}.`);
-      if (ping.vapidMatch === false) add('Notifications', 'Clés VAPID cohérentes', 'ko', 'La clé publique de config.js ne correspond pas au secret VAPID_PUBLIC_KEY : recopie la même clé aux deux endroits.');
-      add('Notifications', 'Secret WEBHOOK_SECRET', ping.secret ? 'ok' : 'ko', ping.secret ? 'Présent.' : 'Absent des secrets de la fonction (étape 3).');
-    }
-    if (st) {
-      add('Notifications', 'Webhook sur les messages', st.webhook ? 'ok' : 'ko', st.webhook ? 'Branché sur la table messages.' : 'Aucun webhook sur la table messages (étape 4).');
-      const w = st.events?.webhook;
-      if (!w) add('Notifications', 'Dernier appel du webhook', 'warn', 'Aucun appel reçu pour l\'instant. Envoie un poke pour tester.');
-      else if (w.ok) add('Notifications', 'Dernier appel du webhook', 'ok', `Reçu et accepté ${evAgo(w)}.`);
-      else add('Notifications', 'Dernier appel du webhook', 'ko', `Refusé ${evAgo(w)} : la phrase de l'en-tête x-webhook-secret est différente de WEBHOOK_SECRET (étape 4).`);
-    }
-    add('Notifications', 'Ce téléphone', S.push === 'on' ? 'ok' : 'warn',
-      S.push === 'on' ? 'Notifications activées ici.' : S.push === 'denied' ? 'Notifications bloquées dans les réglages du navigateur.' : 'Notifications pas encore activées sur ce téléphone.');
-
-    // Courrier du 1er (facultatif)
-    if (st) {
-      if (!st.pg_cron || !st.pg_net) add('Courrier du 1er (facultatif)', 'Extensions pg_cron et pg_net', 'warn', `${[!st.pg_cron && 'pg_cron', !st.pg_net && 'pg_net'].filter(Boolean).join(' et ')} à activer (étape 6, B).`);
-      else add('Courrier du 1er (facultatif)', 'Extensions pg_cron et pg_net', 'ok', 'Activées.');
-      const job = st.cron_job;
-      if (!job) add('Courrier du 1er (facultatif)', 'Tâche planifiée', 'warn', 'Aucune tâche qui appelle send-push (étape 6, C).');
-      else add('Courrier du 1er (facultatif)', 'Tâche planifiée', job.active ? 'ok' : 'warn', job.active ? `« ${job.name} », planifiée ${job.schedule === '5 0 1 * *' ? 'le 1er du mois à 0 h 05 UTC' : `selon « ${job.schedule} »`}.` : `« ${job.name} » est en pause : réactive-la dans Integrations > Cron.`);
-      const m = st.events?.monthly;
-      const last = st.cron_last;
-      if (m && !m.ok) add('Courrier du 1er (facultatif)', 'Dernière levée', 'ko', `Refusée ${evAgo(m)} : la phrase de la tâche est différente de WEBHOOK_SECRET (étape 6, A).`);
-      else if (m) add('Courrier du 1er (facultatif)', 'Dernière levée', 'ok', `${m.detail || 'Effectuée'} (${evAgo(m)}).`);
-      else if (last && last.status === 'failed') add('Courrier du 1er (facultatif)', 'Dernière levée', 'ko', 'La dernière exécution a échoué : ouvre History dans Integrations > Cron.');
-      else if (job) add('Courrier du 1er (facultatif)', 'Dernière levée', 'ok', 'Pas encore de 1er du mois depuis l\'installation.');
-    }
-
-    // Membres
-    if (st) {
-      add('Membres', 'Voyageur inscrit', st.traveler ? 'ok' : 'warn', st.traveler ? `${travelerName()} a rejoint avec son code.` : 'Personne n\'a encore rejoint avec le code VOY-.');
-      add('Membres', 'Groupe', st.members > 1 ? 'ok' : 'warn', `${st.members} membre${st.members > 1 ? 's' : ''} actif${st.members > 1 ? 's' : ''}, ${st.devices} téléphone${st.devices > 1 ? 's' : ''} avec notifications.`);
-    }
-    return list;
-  }
-
-  const STATE_ICON = { ok: '✓', warn: '!', ko: '✕' };
-
-  function adminHtml() {
-    const A = S.adm;
-    let checks = '<p class="fine">Vérification en cours…</p>';
-    if (A.checks) {
-      const ok = A.checks.filter((c) => c.state === 'ok').length;
-      const ko = A.checks.filter((c) => c.state === 'ko').length;
-      const groups = [...new Set(A.checks.map((c) => c.group))];
-      checks = `<p class="adm-summary ${ko ? 'ko' : 'ok'}"><b>${ok} / ${A.checks.length}</b> ${ko ? `· ${ko} point${ko > 1 ? 's' : ''} à corriger` : '· tout ce qui est indispensable fonctionne'}</p>
-        ${groups.map((g) => `<div class="adm-group"><span class="eyebrow">${g}</span><ul class="checks">${A.checks.filter((c) => c.group === g).map((c) =>
-          `<li class="chk ${c.state}"><span class="chk-ic" aria-label="${c.state === 'ok' ? 'OK' : c.state === 'warn' ? 'À voir' : 'À corriger'}">${STATE_ICON[c.state]}</span><div><strong>${esc(c.label)}</strong><span>${esc(c.detail)}</span></div></li>`).join('')}</ul></div>`).join('')}`;
-    }
-
-    const ask = A.ask;
-    const members = A.members.map((m) => {
-      const self = m.id === S.me?.id;
-      const role = m.is_admin ? 'admin' : m.role;
-      const asking = ask?.type === 'remove' && ask.id === m.id;
-      const action = self ? '<span class="fine">C\'est toi</span>'
-        : m.removed_at ? `<button type="button" class="btn small" data-act="adm-restore" data-id="${m.id}">Réintégrer</button>`
-          : `<button type="button" class="btn small" data-act="adm-ask-remove" data-id="${m.id}">Retirer</button>`;
-      return `<li class="mem${m.removed_at ? ' removed' : ''}">
-        <div class="mem-main"><strong>${esc(m.name)}</strong><span class="role-chip ${role}">${ROLE_LABEL[role]}</span>
-          <span class="fine">${m.removed_at ? `Retiré le ${fmtDate(m.removed_at)}` : `Inscrit le ${fmtDate(m.created_at)} · ${m.devices ? `${m.devices} téléphone${m.devices > 1 ? 's' : ''} notifié${m.devices > 1 ? 's' : ''}` : 'sans notifications'}`}</span></div>
-        ${asking ? '' : action}
-        ${asking ? `<div class="confirm"><strong>Retirer ${esc(m.name)} ?</strong>
-          <p class="fine">${role === 'voyageur' ? 'C\'est le voyageur : il ne pourra plus utiliser l\'appli, ni le bouton SOS. ' : ''}L'accès est coupé tout de suite et ses messages restent visibles. Pour qu'il ne puisse pas revenir depuis un autre téléphone, change ensuite le code ${ROLE_LABEL[m.role]}.</p>
-          <div class="row"><button type="button" class="btn small danger-btn" data-act="adm-remove" data-id="${m.id}">Retirer</button><button type="button" class="btn small" data-act="adm-cancel">Annuler</button></div></div>` : ''}
-      </li>`;
-    }).join('');
-
-    const codes = A.codes.map((c) => {
-      const asking = ask?.type === 'regen' && ask.role === c.role;
-      return `<li class="code-row">
-        <div><span class="eyebrow">${c.role === 'groupe' ? 'Collègues' : c.role === 'voyageur' ? 'Voyageur' : 'Administrateur'}</span><code class="code" id="code-${c.role}">${esc(c.code)}</code></div>
-        <div class="row"><button type="button" class="btn small" data-act="adm-copy" data-r="${c.role}" data-copy="${esc(c.code)}">Copier</button><button type="button" class="btn small" data-act="adm-ask-regen" data-r="${c.role}">Changer</button></div>
-        ${asking ? `<div class="confirm"><strong>Changer le code ${ROLE_LABEL[c.role]} ?</strong><p class="fine">L'ancien code ne fonctionnera plus pour rejoindre. Les membres déjà inscrits ne sont pas concernés.</p>
-          <div class="row"><button type="button" class="btn small danger-btn" data-act="adm-regen" data-r="${c.role}">Changer le code</button><button type="button" class="btn small" data-act="adm-cancel">Annuler</button></div></div>` : ''}
-      </li>`;
-    }).join('');
-
-    return `<div class="pane admin">
-      <div class="adm-top"><button type="button" class="link-btn" data-tab="${isTraveler() ? 'securite' : 'urgence'}">← Retour</button><h2>Administration</h2></div>
-
-      <section class="card">
-        <div class="adm-head"><h3>État de l'installation</h3><button type="button" class="btn small" data-act="adm-refresh"${A.loading ? ' disabled' : ''}>${A.loading ? 'Vérification…' : 'Relancer'}</button></div>
-        ${checks}
-        <button type="button" class="btn small jade" data-act="adm-test-push"${S.push === 'on' ? '' : ' disabled'}>M'envoyer une notification de test</button>
-        ${S.push === 'on' ? '' : '<p class="fine">Active d\'abord les notifications sur ce téléphone (bandeau en haut de l\'appli).</p>'}
-      </section>
-
-      <section class="card">
-        <h3>Membres</h3>
-        <ul class="members">${members || '<li class="fine">Chargement…</li>'}</ul>
-      </section>
-
-      <section class="card">
-        <h3>Codes d'invitation</h3>
-        <ul class="codes">${codes || '<li class="fine">Chargement…</li>'}</ul>
-        <p class="fine">Le code Administrateur te donne ces droits : garde-le pour toi.</p>
-      </section>
-
-      <section class="card reset">
-        <h3>Remise à zéro</h3>
-        <p class="fine">Efface tous les messages, photos, membres et abonnements, par exemple après les tests et avant le départ. Tu restes administrateur et les codes sont conservés. Chacun devra rejoindre à nouveau.</p>
-        <label class="field" for="reset-confirm">Tape EFFACER pour confirmer<input id="reset-confirm" type="text" autocomplete="off" autocapitalize="characters" placeholder="EFFACER"></label>
-        <button type="button" class="btn small danger-btn" data-act="adm-reset">Tout effacer</button>
-      </section>
-    </div>`;
-  }
-
-  async function loadAdmin() {
-    S.adm.loading = true;
-    if (S.tab === 'admin') renderMain();
-    try {
-      const [diag, members, codes] = await Promise.all([db.adminStatus(), db.adminMembers(), db.adminCodes()]);
-      S.adm.checks = buildChecks(diag);
-      S.adm.members = members || [];
-      S.adm.codes = codes || [];
-    } catch (err) {
-      S.adm.checks = buildChecks({ stErr: err.message });
-    }
-    S.adm.loading = false;
-    if (S.tab === 'admin') renderMain();
-  }
-
-  async function adminAction(act, t) {
-    const A = S.adm;
-    try {
-      switch (act) {
-        case 'adm-refresh': return loadAdmin();
-        case 'adm-cancel': A.ask = null; return renderMain();
-        case 'adm-ask-remove': A.ask = { type: 'remove', id: t.dataset.id }; return renderMain();
-        case 'adm-ask-regen': A.ask = { type: 'regen', role: t.dataset.r }; return renderMain();
-        case 'adm-remove': {
-          const m = A.members.find((x) => x.id === t.dataset.id);
-          await db.adminRemove(t.dataset.id); A.ask = null;
-          toast(`${m?.name || 'Le membre'} est retiré. Pense à changer le code ${ROLE_LABEL[m?.role] || ''}.`);
-          S.members = await db.members();
-          return loadAdmin();
-        }
-        case 'adm-restore': await db.adminRestore(t.dataset.id); toast('Membre réintégré.'); S.members = await db.members(); return loadAdmin();
-        case 'adm-regen': {
-          const code = await db.adminRegenerate(t.dataset.r); A.ask = null;
-          toast(`Nouveau code : ${code}`);
-          A.codes = await db.adminCodes(); return renderMain();
-        }
-        case 'adm-copy': return copyText(t.dataset.copy, $(`#code-${t.dataset.r}`));
-        case 'adm-test-push': {
-          const r = await db.adminTestPush();
-          toast(r.sent ? `Notification envoyée sur ${r.sent} téléphone${r.sent > 1 ? 's' : ''}.` : r.total ? `Échec de l'envoi (${(r.errors || []).join(', ') || 'erreur inconnue'}) : vérifie les clés VAPID.` : 'Aucun téléphone abonné : active les notifications ici.');
-          return;
-        }
-        case 'adm-reset': {
-          const v = ($('#reset-confirm')?.value || '').trim().toUpperCase();
-          if (v !== 'EFFACER') { toast('Tape EFFACER dans le champ pour confirmer.'); $('#reset-confirm')?.focus(); return; }
-          toast('Remise à zéro en cours…');
-          await db.adminReset(v);
-          S.members = await db.members(); S.messages = await db.list().catch(() => []);
-          toast(DEMO ? 'Démo : rien n\'a été effacé pour de vrai.' : 'Toutes les données ont été effacées.');
-          renderHeader();
-          return loadAdmin();
-        }
-      }
-    } catch (err) {
-      toast(err.message || 'L\'opération a échoué.');
-    }
-  }
-
-  function accountHtml() {
-    const ask = S.ask;
-    const confirmBox = (title, text, act, label) => `<div class="confirm" role="alertdialog" aria-label="${title}">
-        <strong>${title}</strong><p class="fine">${text}</p>
-        <div class="row"><button type="button" class="btn small danger-btn" data-act="${act}">${label}</button><button type="button" class="btn small" data-act="cancel-ask">Annuler</button></div>
-      </div>`;
-    return `<h2 class="section-title">Mon compte</h2>
-      <div class="card account">
-        <p class="fine">Connecté en tant que <b>${esc(S.me?.name || '')}</b> · ${isTraveler() ? 'voyageur' : S.me?.is_admin ? 'groupe, administrateur' : 'groupe'}</p>
-        ${ask === 'logout' ? confirmBox('Se déconnecter ?', 'Pour revenir, il faudra le code d\'invitation et ton prénom. Tes messages restent dans le groupe. Ce téléphone ne recevra plus de notifications.', 'logout', 'Se déconnecter')
-          : ask === 'raz' ? confirmBox('Réinitialiser l\'appli sur ce téléphone ?', 'Déconnexion, arrêt des notifications, effacement des réglages et des fichiers gardés hors ligne. Rien n\'est supprimé pour le groupe.', 'raz', 'Tout réinitialiser')
-          : `<div class="row">${S.me?.is_admin ? '<button type="button" class="btn small jade" data-act="open-admin">Administration</button>' : ''}<button type="button" class="btn small" data-act="ask-logout">Se déconnecter</button><button type="button" class="btn small" data-act="ask-raz">RAZ de l'appli</button></div>`}
-      </div>`;
-  }
-
-  async function logout() {
-    await db.signOut().catch(() => {});
-    S.me = null; S.ask = null; S.replyTo = null; S.writeOpen = false; S.expanded = null; S.tab = 'pays';
-    renderJoin();
-  }
-
-  async function resetApp() {
-    await db.signOut().catch(() => {});
-    ['oscc-country', 'oscc-demo-role', 'rt-opened'].forEach((k) => { try { localStorage.removeItem(k); } catch { /* indisponible */ } });
-    if (DEMO) {
-      CLOCK.shift = 0;
-      Object.assign(S, { me: null, ask: null, replyTo: null, writeOpen: false, expanded: null, tab: 'pays', country: '', draft: '' });
-      toast('Démo réinitialisée.');
-      return renderJoin();
-    }
-    try { for (const k of await caches.keys()) await caches.delete(k); } catch { /* indisponible */ }
-    try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch { /* indisponible */ }
-    location.replace(location.pathname);
-  }
-
   function renderJoin(error = '') {
-    $('#hdr').innerHTML = `<div class="sky"><div class="brand"><img src="${LOGO}" alt="" width="30" height="30"><h1>ROADTRIP<small>Rejoindre le groupe</small></h1></div></div>`;
+    $('#hdr').innerHTML = `<div class="sky"><div class="brand"><img src="${LOGO}" alt="" width="30" height="30"><h1>OS Corsica Connect<small>Rejoindre le groupe</small></h1></div></div>`;
     $('#bnr').innerHTML = '';
     $('#ftr').innerHTML = '';
     $('#main').innerHTML = `<form class="join" id="join-form">
-      <h2>Le road trip de ${esc(CFG.TRAVELER_NAME)} en Asie</h2>
+      <h2>Garde le lien avec ${esc(CFG.TRAVELER_NAME)} pendant son voyage en Asie</h2>
       <p class="muted" style="margin:0">Entre ton prénom et le code d'invitation que t'a transmis l'organisateur.</p>
-      ${DEMO ? '<p class="fine">Démo : tape n\'importe quel code commençant par GRP- (groupe), VOY- (voyageur) ou ADM- (administrateur).</p>' : ''}
       <label class="field" for="join-name">Prénom<input id="join-name" required maxlength="40" autocomplete="given-name"></label>
       <label class="field" for="join-code">Code d'invitation<input id="join-code" required autocomplete="off" autocapitalize="characters" placeholder="GRP-XXXXXXXX"></label>
       ${error ? `<p role="alert" style="color:var(--sos);margin:0">${esc(error)}</p>` : ''}
@@ -1449,7 +1099,6 @@
     const battery = await getBattery();
     await send({ kind: 'checkin', body: place || null, country: S.country || null, ...(pos || {}), battery, reply_to: null },
       pos ? 'Tout le monde sait que tu vas bien.' : 'Envoyé, sans position (GPS indisponible).');
-    const inp = $('#ok-place'); if (inp) inp.value = '';
     renderAll();
   }
 
@@ -1528,7 +1177,7 @@
     const t = e.target.closest('button, [data-tab]');
     if (!t) return;
     if (t.dataset.role && DEMO) {
-      db.setRole(t.dataset.role); S.me = db.me; S.tab = 'pays'; S.replyTo = null; S.writeOpen = false; S.expanded = null; S.sos = { phase: 'idle' };
+      db.setRole(t.dataset.role); S.me = db.me; S.tab = isTraveler() ? 'cartes' : 'fil'; S.replyTo = null; S.sos = { phase: 'idle' };
       if (isTraveler() && !S.country) S.country = currentCountry();
       S.push = await db.pushStatus(); renderAll({ toBottom: true, top: true }); if (isTraveler()) $('#main').scrollTop = 0; return;
     }
@@ -1540,22 +1189,11 @@
       return;
     }
     if (t.dataset.quick) { await send({ kind: 'texte', body: t.dataset.quick }).catch(() => {}); S.replyTo = null; renderFooter(); return; }
-    if (t.dataset.act?.startsWith('adm-')) return adminAction(t.dataset.act, t);
     switch (t.dataset.act) {
       case 'push': return enablePush();
       case 'checkin': return doCheckin().catch(() => {});
-      case 'reply': S.replyTo = t.dataset.id; renderFooter(); if (S.tab === 'cartes') renderMain(); $('#draft')?.focus(); return;
-      case 'cancel-reply': S.replyTo = null; renderFooter(); if (S.tab === 'cartes') renderMain(); return;
-      case 'write': S.writeOpen = true; renderMain(); renderFooter(); $('#draft')?.focus(); return;
-      case 'close-write': S.writeOpen = false; S.replyTo = null; renderMain(); renderFooter(); return;
-      case 'open-batch': {
-        const k = Number(t.dataset.k);
-        S.expanded = k; markOpened(k); renderMain();
-        const el = document.getElementById(`batch-${k}`);
-        if (el) { el.closest('.batch')?.classList.add('just-opened'); el.scrollIntoView({ block: 'start' }); }
-        return;
-      }
-      case 'close-batch': S.expanded = null; renderMain(); return;
+      case 'reply': S.replyTo = t.dataset.id; renderFooter(); $('#draft')?.focus(); return;
+      case 'cancel-reply': S.replyTo = null; renderFooter(); return;
       case 'take':
         await send({ kind: 'texte', body: `Je m'en occupe, j'essaie de joindre ${travelerName()}.`, reply_to: t.dataset.id }, 'Le groupe sait que tu t\'en occupes.').catch(() => {});
         return;
@@ -1568,16 +1206,12 @@
         const n = sealedStats().total;
         CLOCK.shift = k + 7 * 3600e3 - Date.now();
         renderAll({ top: true });
-        toast(`📬 Courrier ${deName(monthName(k - 86400e3))} arrivé : ${n} envoi${n > 1 ? 's' : ''}, à ouvrir quand tu veux.`);
+        const el = document.getElementById(`batch-${k}`);
+        if (el) { el.classList.add('just-opened'); el.scrollIntoView({ block: 'start' }); }
+        toast(`📬 Le courrier de ${monthName(k - 86400e3)} est arrivé : ${n} envoi${n > 1 ? 's' : ''}.`);
         return;
       }
       case 'demo-reset': CLOCK.shift = 0; renderAll({ top: true }); $('#main').scrollTop = 0; return;
-      case 'ask-logout': S.ask = 'logout'; renderMain(); return;
-      case 'ask-raz': S.ask = 'raz'; renderMain(); return;
-      case 'cancel-ask': S.ask = null; renderMain(); return;
-      case 'logout': return logout();
-      case 'raz': return resetApp();
-      case 'open-admin': S.tab = 'admin'; S.adm.ask = null; renderMain({ top: true }); $('#main').scrollTop = 0; renderFooter(); return loadAdmin();
       case 'copy-sos': return copyText(S.sos.text || '', $('#sos-copy-text'));
       case 'install':
         if (S.installEvt) { S.installEvt.prompt(); S.installEvt = null; renderMain(); }
@@ -1593,7 +1227,7 @@
     const btn = e.target.querySelector('[type=submit]'); btn.disabled = true;
     try {
       await send({ kind: 'texte', body }, isTraveler() ? 'Envoyé au groupe.' : null);
-      S.draft = ''; S.replyTo = null; S.writeOpen = false; renderFooter(); if (S.tab === 'cartes') renderMain();
+      S.draft = ''; S.replyTo = null; renderFooter();
     } catch { /* message déjà affiché */ } finally { btn.disabled = false; }
   });
 
@@ -1631,19 +1265,21 @@
   // Démarrage
   // ---------------------------------------------------------------------
   async function refresh() {
-    try { S.messages = await db.list(); renderAll(); } catch { /* hors ligne : on garde l'affichage */ }
+    try { S.messages = await db.list(); S.sealedRemote = await db.sealedSummary().catch(() => S.sealedRemote); renderAll(); } catch { /* hors ligne : on garde l'affichage */ }
   }
 
   async function start() {
     S.members = await db.members();
     S.messages = await db.list().catch(() => []);
     S.push = await db.pushStatus().catch(() => 'off');
-    S.tab = 'pays';
+    S.sealedRemote = await db.sealedSummary().catch(() => null);
+    if (isTraveler()) S.tab = 'cartes';
     if (isTraveler() && !S.country) S.country = currentCountry();
     renderAll({ toBottom: true });
-    if (!S.started) { S.started = true; db.onMessage(addMessage); setInterval(() => S.me && renderHeader(), 60000); }
+    db.onMessage(addMessage);
     const hash = location.hash.match(/^#m-(.+)$/);
     if (hash) setTimeout(() => gotoMessage(hash[1]), 300);
+    setInterval(renderHeader, 60000);
   }
 
   (async () => {
