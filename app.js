@@ -344,15 +344,26 @@
         return me;
       },
       async join(code, name) {
-        const { data: { session } } = await sb.auth.getSession();
         if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(CFG.SUPABASE_URL)) {
           throw new Error("SUPABASE_URL est mal écrite dans config.js. Format attendu : https://xxxx.supabase.co (sans / à la fin).");
         }
-        if (!session) {
+        const freshSession = async () => {
+          await sb.auth.signOut({ scope: 'local' }).catch(() => {});
           const { error } = await sb.auth.signInAnonymously();
           if (error) throw new Error(explainAuthError(error));
+        };
+        // Une session gardée sur ce téléphone peut viser un compte effacé (après une remise à zéro) : on la vérifie
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) await freshSession();
+        else {
+          const { error: userErr } = await sb.auth.getUser();
+          if (userErr) await freshSession();
         }
-        const { error } = await sb.rpc('join_group', { p_code: code, p_name: name });
+        let { error } = await sb.rpc('join_group', { p_code: code, p_name: name });
+        if (error && /members_id_fkey|foreign key|JWT|not found/i.test(error.message)) {
+          await freshSession();
+          ({ error } = await sb.rpc('join_group', { p_code: code, p_name: name }));
+        }
         if (error) throw new Error(/function|schema cache/i.test(error.message)
           ? "La base n'est pas prête : exécute supabase/schema.sql dans le SQL Editor."
           : error.message);
