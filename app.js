@@ -171,7 +171,7 @@
     const travelerName = CFG.TRAVELER_NAME || 'Antoine';
     const crew = ['Sophie', 'Karim', 'Julie', 'Marc', 'Inès', 'Thomas', 'Léa', 'Yanis', 'Camille', 'Hugo', 'Sarah', 'Nicolas', 'Emma', 'Mehdi', 'Laura', 'Romain', 'Chloé', 'Paul'];
     const members = [
-      { id: 'u-me', name: 'Toi', role: 'groupe' },
+      { id: 'u-me', name: 'Toi', role: 'groupe', is_admin: true },
       { id: 'u-trav', name: travelerName, role: 'voyageur' },
       ...crew.map((n, i) => ({ id: `u-${i}`, name: n, role: 'groupe' })),
     ];
@@ -233,6 +233,8 @@
     let role = store.get('oscc-demo-role') || 'groupe';
     const meFor = (r) => (r === 'voyageur' ? by('u-trav') : by('u-me'));
     let pushOn = false;
+    const removed = new Map();
+    const codes = { groupe: 'GRP-7F3A91C2', voyageur: 'VOY-4B8E2D10', admin: 'ADM-9C61F5A7' };
 
     return {
       demo: true,
@@ -240,7 +242,8 @@
       get me() { return meFor(role); },
       setRole(r) { role = r; store.set('oscc-demo-role', r); },
       async init() { return meFor(role); },
-      async members() { return members; },
+      isRemoved: (id) => removed.has(id),
+      async members() { return members.filter((m) => !removed.has(m.id)); },
       async list() { return msgs.map(decorate); },
       onMessage(cb) { listeners.add(cb); },
       async send(fields) {
@@ -262,6 +265,25 @@
       async sealedSummary() { return null; },
       async join(code) { role = /^VOY/i.test(String(code).trim()) ? 'voyageur' : 'groupe'; store.set('oscc-demo-role', role); return meFor(role); },
       async signOut() { pushOn = false; },
+      async adminStatus() {
+        const ago2 = new Date(nowMs() - 2 * 3600e3).toISOString();
+        return {
+          st: { schema: true, bucket: true, realtime: true, webhook: true, pg_cron: true, pg_net: true, cron_job: null, cron_last: null,
+            traveler: !removed.has('u-trav'), members: members.length - removed.size, devices: 14 + (pushOn ? 1 : 0),
+            events: { webhook: { at: ago2, ok: true, detail: 'Message reçu' } } },
+          ping: { ok: true, vapid: true, vapidMatch: true, secret: true },
+        };
+      },
+      async adminMembers() {
+        return members.map((m, i) => ({ ...m, is_admin: !!m.is_admin, created_at: new Date(Date.UTC(2026, 9, 2 + (i % 9), 9)).toISOString(),
+          removed_at: removed.get(m.id) || null, devices: m.id === 'u-me' ? (pushOn ? 1 : 0) : removed.has(m.id) ? 0 : i % 4 === 0 ? 0 : 1 }));
+      },
+      async adminRemove(id) { removed.set(id, new Date(nowMs()).toISOString()); },
+      async adminRestore(id) { removed.delete(id); },
+      async adminCodes() { return Object.entries(codes).map(([role, code]) => ({ role, code })); },
+      async adminRegenerate(r) { codes[r] = `${{ groupe: 'GRP', voyageur: 'VOY', admin: 'ADM' }[r]}-${Math.random().toString(16).slice(2, 10).toUpperCase()}`; return codes[r]; },
+      async adminReset() { /* démo : rien n'est effacé */ },
+      async adminTestPush() { return pushOn ? { sent: 1, total: 1 } : { sent: 0, total: 0 }; },
     };
   }
 
@@ -303,8 +325,8 @@
       async init() {
         const { data: { session } } = await sb.auth.getSession();
         if (!session) return null;
-        const { data } = await sb.from('members').select('id, name, role').eq('id', session.user.id).maybeSingle();
-        me = data || null;
+        const { data } = await sb.from('members').select('id, name, role, is_admin, removed_at').eq('id', session.user.id).maybeSingle();
+        me = data && !data.removed_at ? data : null;
         return me;
       },
       async join(code, name) {
@@ -323,8 +345,8 @@
         return this.init();
       },
       async members() {
-        const { data } = await sb.from('members').select('id, name, role');
-        return data || [];
+        const { data } = await sb.from('members').select('id, name, role, removed_at');
+        return (data || []).filter((m) => !m.removed_at);
       },
       async list() {
         const { data, error } = await sb.from('messages').select(SELECT).order('created_at', { ascending: false }).limit(400);
@@ -387,6 +409,37 @@
         await sb.auth.signOut();
         me = null;
       },
+      async adminStatus() {
+        const [st, ping] = await Promise.all([
+          sb.rpc('admin_status'),
+          sb.functions.invoke('send-push', { body: { type: 'PING', vapidPublic: CFG.VAPID_PUBLIC_KEY } }).catch((error) => ({ error })),
+        ]);
+        let pingErr = null;
+        if (ping.error) pingErr = ping.error.context?.status === 401 ? 'old' : 'down';
+        return { st: st.data, stErr: st.error?.message, ping: ping.data, pingErr };
+      },
+      async adminMembers() { const { data, error } = await sb.rpc('admin_members'); if (error) throw error; return data; },
+      async adminRemove(id) { const { error } = await sb.rpc('admin_remove_member', { p_id: id }); if (error) throw error; },
+      async adminRestore(id) { const { error } = await sb.rpc('admin_restore_member', { p_id: id }); if (error) throw error; },
+      async adminCodes() { const { data, error } = await sb.rpc('admin_codes'); if (error) throw error; return data; },
+      async adminRegenerate(r) { const { data, error } = await sb.rpc('admin_regenerate_code', { p_role: r }); if (error) throw error; return data; },
+      async adminTestPush() {
+        const { data, error } = await sb.functions.invoke('send-push', { body: { type: 'TEST_PUSH' } });
+        if (error) throw new Error('La fonction send-push n\'a pas répondu : consulte l\'état de l\'installation.');
+        return data;
+      },
+      async adminReset(confirm) {
+        // Photos d'abord (un dossier par membre), puis les données
+        const bucket = sb.storage.from('photos');
+        const { data: folders } = await bucket.list('', { limit: 1000 });
+        for (const f of folders || []) {
+          const { data: files } = await bucket.list(f.name, { limit: 1000 });
+          const paths = (files || []).map((x) => `${f.name}/${x.name}`);
+          if (paths.length) await bucket.remove(paths);
+        }
+        const { error } = await sb.rpc('admin_reset', { p_confirm: confirm });
+        if (error) throw error;
+      },
       async sealedSummary() {
         if (me?.role !== 'voyageur') return null;
         const { data } = await sb.rpc('sealed_summary');
@@ -401,7 +454,7 @@
   // ---------------------------------------------------------------------
   const db = DEMO ? DemoStore() : SupaStore();
   const S = {
-    me: null, members: [], messages: [], tab: 'pays', expanded: null, writeOpen: false, replyTo: null, draft: '',
+    me: null, members: [], messages: [], tab: 'pays', adm: { loading: false, checks: null, members: [], codes: [], ask: null }, expanded: null, writeOpen: false, replyTo: null, draft: '',
     country: store.get('oscc-country') || '', push: 'off', sos: { phase: 'idle' }, installEvt: null,
   };
   const isTraveler = () => S.me?.role === 'voyageur';
@@ -1029,6 +1082,7 @@
     if (S.tab === 'fil') main.innerHTML = feedHtml();
     else if (S.tab === 'cartes') main.innerHTML = cartesHtml();
     else if (S.tab === 'pays') main.innerHTML = paysHtml();
+    else if (S.tab === 'admin') main.innerHTML = adminHtml();
     else main.innerHTML = isTraveler() ? securiteHtml() : urgenceHtml();
     if (S.tab === 'fil' && (opts.toBottom || nearBottom)) {
       main.scrollTop = main.scrollHeight;
@@ -1071,6 +1125,203 @@
 
   function renderAll(opts) { renderHeader(); renderBanners(); renderMain(opts); renderFooter(); }
 
+  // ---------------------------------------------------------------------
+  // Administration : état de l'installation, membres, codes, remise à zéro
+  // ---------------------------------------------------------------------
+  const ROLE_LABEL = { groupe: 'Groupe', voyageur: 'Voyageur', admin: 'Admin' };
+
+  function buildChecks({ st, stErr, ping, pingErr }) {
+    const list = [];
+    const add = (group, label, state, detail) => list.push({ group, label, state, detail });
+    const evAgo = (e) => (e?.at ? ago(e.at) : '');
+
+    // Appli
+    add('Appli', 'Fichier config.js', DEMO || (CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY) ? 'ok' : 'ko',
+      DEMO || CFG.SUPABASE_URL ? 'Adresse et clé Supabase renseignées.' : 'SUPABASE_URL ou SUPABASE_ANON_KEY est vide (étape 5).');
+    add('Appli', 'Connexion à Supabase', 'ok', 'Tu es connecté : les connexions anonymes fonctionnent.');
+
+    // Base
+    if (stErr || !st) {
+      add('Base de données', 'Script schema.sql', 'ko', 'Les fonctions d\'administration manquent : relance la dernière version de supabase/schema.sql dans le SQL Editor.');
+    } else {
+      add('Base de données', 'Script schema.sql', 'ok', 'Tables, règles d\'accès et codes en place.');
+      add('Base de données', 'Stockage des photos', st.bucket ? 'ok' : 'ko', st.bucket ? 'Le dossier « photos » existe.' : 'Le dossier « photos » manque : relance schema.sql.');
+      add('Base de données', 'Mise à jour en direct', st.realtime ? 'ok' : 'warn', st.realtime ? 'Les nouveaux messages s\'affichent sans recharger.' : 'Relance schema.sql pour activer le temps réel.');
+    }
+
+    // Notifications
+    add('Notifications', 'Clé publique dans config.js', DEMO || CFG.VAPID_PUBLIC_KEY ? 'ok' : 'ko', DEMO || CFG.VAPID_PUBLIC_KEY ? 'VAPID_PUBLIC_KEY renseignée.' : 'VAPID_PUBLIC_KEY est vide dans config.js (étape 5).');
+    if (pingErr === 'old') add('Notifications', 'Fonction send-push', 'ko', 'Une ancienne version est déployée : recolle le nouveau index.ts dans la fonction et redéploie.');
+    else if (pingErr || !ping) add('Notifications', 'Fonction send-push', 'ko', 'La fonction ne répond pas : vérifie qu\'elle est déployée sous le nom exact send-push, vérification JWT désactivée (étape 3).');
+    else {
+      add('Notifications', 'Fonction send-push', 'ok', 'Déployée et joignable.');
+      add('Notifications', 'Clés VAPID dans les secrets', ping.vapid ? 'ok' : 'ko', ping.vapid ? 'Présentes et valides.' : `Absentes ou invalides (étape 3)${ping.vapidError ? ` : ${ping.vapidError}` : ''}.`);
+      if (ping.vapidMatch === false) add('Notifications', 'Clés VAPID cohérentes', 'ko', 'La clé publique de config.js ne correspond pas au secret VAPID_PUBLIC_KEY : recopie la même clé aux deux endroits.');
+      add('Notifications', 'Secret WEBHOOK_SECRET', ping.secret ? 'ok' : 'ko', ping.secret ? 'Présent.' : 'Absent des secrets de la fonction (étape 3).');
+    }
+    if (st) {
+      add('Notifications', 'Webhook sur les messages', st.webhook ? 'ok' : 'ko', st.webhook ? 'Branché sur la table messages.' : 'Aucun webhook sur la table messages (étape 4).');
+      const w = st.events?.webhook;
+      if (!w) add('Notifications', 'Dernier appel du webhook', 'warn', 'Aucun appel reçu pour l\'instant. Envoie un poke pour tester.');
+      else if (w.ok) add('Notifications', 'Dernier appel du webhook', 'ok', `Reçu et accepté ${evAgo(w)}.`);
+      else add('Notifications', 'Dernier appel du webhook', 'ko', `Refusé ${evAgo(w)} : la phrase de l'en-tête x-webhook-secret est différente de WEBHOOK_SECRET (étape 4).`);
+    }
+    add('Notifications', 'Ce téléphone', S.push === 'on' ? 'ok' : 'warn',
+      S.push === 'on' ? 'Notifications activées ici.' : S.push === 'denied' ? 'Notifications bloquées dans les réglages du navigateur.' : 'Notifications pas encore activées sur ce téléphone.');
+
+    // Courrier du 1er (facultatif)
+    if (st) {
+      if (!st.pg_cron || !st.pg_net) add('Courrier du 1er (facultatif)', 'Extensions pg_cron et pg_net', 'warn', `${[!st.pg_cron && 'pg_cron', !st.pg_net && 'pg_net'].filter(Boolean).join(' et ')} à activer (étape 6, B).`);
+      else add('Courrier du 1er (facultatif)', 'Extensions pg_cron et pg_net', 'ok', 'Activées.');
+      const job = st.cron_job;
+      if (!job) add('Courrier du 1er (facultatif)', 'Tâche planifiée', 'warn', 'Aucune tâche qui appelle send-push (étape 6, C).');
+      else add('Courrier du 1er (facultatif)', 'Tâche planifiée', job.active ? 'ok' : 'warn', job.active ? `« ${job.name} », planifiée ${job.schedule === '5 0 1 * *' ? 'le 1er du mois à 0 h 05 UTC' : `selon « ${job.schedule} »`}.` : `« ${job.name} » est en pause : réactive-la dans Integrations > Cron.`);
+      const m = st.events?.monthly;
+      const last = st.cron_last;
+      if (m && !m.ok) add('Courrier du 1er (facultatif)', 'Dernière levée', 'ko', `Refusée ${evAgo(m)} : la phrase de la tâche est différente de WEBHOOK_SECRET (étape 6, A).`);
+      else if (m) add('Courrier du 1er (facultatif)', 'Dernière levée', 'ok', `${m.detail || 'Effectuée'} (${evAgo(m)}).`);
+      else if (last && last.status === 'failed') add('Courrier du 1er (facultatif)', 'Dernière levée', 'ko', 'La dernière exécution a échoué : ouvre History dans Integrations > Cron.');
+      else if (job) add('Courrier du 1er (facultatif)', 'Dernière levée', 'ok', 'Pas encore de 1er du mois depuis l\'installation.');
+    }
+
+    // Membres
+    if (st) {
+      add('Membres', 'Voyageur inscrit', st.traveler ? 'ok' : 'warn', st.traveler ? `${travelerName()} a rejoint avec son code.` : 'Personne n\'a encore rejoint avec le code VOY-.');
+      add('Membres', 'Groupe', st.members > 1 ? 'ok' : 'warn', `${st.members} membre${st.members > 1 ? 's' : ''} actif${st.members > 1 ? 's' : ''}, ${st.devices} téléphone${st.devices > 1 ? 's' : ''} avec notifications.`);
+    }
+    return list;
+  }
+
+  const STATE_ICON = { ok: '✓', warn: '!', ko: '✕' };
+
+  function adminHtml() {
+    const A = S.adm;
+    let checks = '<p class="fine">Vérification en cours…</p>';
+    if (A.checks) {
+      const ok = A.checks.filter((c) => c.state === 'ok').length;
+      const ko = A.checks.filter((c) => c.state === 'ko').length;
+      const groups = [...new Set(A.checks.map((c) => c.group))];
+      checks = `<p class="adm-summary ${ko ? 'ko' : 'ok'}"><b>${ok} / ${A.checks.length}</b> ${ko ? `· ${ko} point${ko > 1 ? 's' : ''} à corriger` : '· tout ce qui est indispensable fonctionne'}</p>
+        ${groups.map((g) => `<div class="adm-group"><span class="eyebrow">${g}</span><ul class="checks">${A.checks.filter((c) => c.group === g).map((c) =>
+          `<li class="chk ${c.state}"><span class="chk-ic" aria-label="${c.state === 'ok' ? 'OK' : c.state === 'warn' ? 'À voir' : 'À corriger'}">${STATE_ICON[c.state]}</span><div><strong>${esc(c.label)}</strong><span>${esc(c.detail)}</span></div></li>`).join('')}</ul></div>`).join('')}`;
+    }
+
+    const ask = A.ask;
+    const members = A.members.map((m) => {
+      const self = m.id === S.me?.id;
+      const role = m.is_admin ? 'admin' : m.role;
+      const asking = ask?.type === 'remove' && ask.id === m.id;
+      const action = self ? '<span class="fine">C\'est toi</span>'
+        : m.removed_at ? `<button type="button" class="btn small" data-act="adm-restore" data-id="${m.id}">Réintégrer</button>`
+          : `<button type="button" class="btn small" data-act="adm-ask-remove" data-id="${m.id}">Retirer</button>`;
+      return `<li class="mem${m.removed_at ? ' removed' : ''}">
+        <div class="mem-main"><strong>${esc(m.name)}</strong><span class="role-chip ${role}">${ROLE_LABEL[role]}</span>
+          <span class="fine">${m.removed_at ? `Retiré le ${fmtDate(m.removed_at)}` : `Inscrit le ${fmtDate(m.created_at)} · ${m.devices ? `${m.devices} téléphone${m.devices > 1 ? 's' : ''} notifié${m.devices > 1 ? 's' : ''}` : 'sans notifications'}`}</span></div>
+        ${asking ? '' : action}
+        ${asking ? `<div class="confirm"><strong>Retirer ${esc(m.name)} ?</strong>
+          <p class="fine">${role === 'voyageur' ? 'C\'est le voyageur : il ne pourra plus utiliser l\'appli, ni le bouton SOS. ' : ''}L'accès est coupé tout de suite et ses messages restent visibles. Pour qu'il ne puisse pas revenir depuis un autre téléphone, change ensuite le code ${ROLE_LABEL[m.role]}.</p>
+          <div class="row"><button type="button" class="btn small danger-btn" data-act="adm-remove" data-id="${m.id}">Retirer</button><button type="button" class="btn small" data-act="adm-cancel">Annuler</button></div></div>` : ''}
+      </li>`;
+    }).join('');
+
+    const codes = A.codes.map((c) => {
+      const asking = ask?.type === 'regen' && ask.role === c.role;
+      return `<li class="code-row">
+        <div><span class="eyebrow">${c.role === 'groupe' ? 'Collègues' : c.role === 'voyageur' ? 'Voyageur' : 'Administrateur'}</span><code class="code" id="code-${c.role}">${esc(c.code)}</code></div>
+        <div class="row"><button type="button" class="btn small" data-act="adm-copy" data-r="${c.role}" data-copy="${esc(c.code)}">Copier</button><button type="button" class="btn small" data-act="adm-ask-regen" data-r="${c.role}">Changer</button></div>
+        ${asking ? `<div class="confirm"><strong>Changer le code ${ROLE_LABEL[c.role]} ?</strong><p class="fine">L'ancien code ne fonctionnera plus pour rejoindre. Les membres déjà inscrits ne sont pas concernés.</p>
+          <div class="row"><button type="button" class="btn small danger-btn" data-act="adm-regen" data-r="${c.role}">Changer le code</button><button type="button" class="btn small" data-act="adm-cancel">Annuler</button></div></div>` : ''}
+      </li>`;
+    }).join('');
+
+    return `<div class="pane admin">
+      <div class="adm-top"><button type="button" class="link-btn" data-tab="${isTraveler() ? 'securite' : 'urgence'}">← Retour</button><h2>Administration</h2></div>
+
+      <section class="card">
+        <div class="adm-head"><h3>État de l'installation</h3><button type="button" class="btn small" data-act="adm-refresh"${A.loading ? ' disabled' : ''}>${A.loading ? 'Vérification…' : 'Relancer'}</button></div>
+        ${checks}
+        <button type="button" class="btn small jade" data-act="adm-test-push"${S.push === 'on' ? '' : ' disabled'}>M'envoyer une notification de test</button>
+        ${S.push === 'on' ? '' : '<p class="fine">Active d\'abord les notifications sur ce téléphone (bandeau en haut de l\'appli).</p>'}
+      </section>
+
+      <section class="card">
+        <h3>Membres</h3>
+        <ul class="members">${members || '<li class="fine">Chargement…</li>'}</ul>
+      </section>
+
+      <section class="card">
+        <h3>Codes d'invitation</h3>
+        <ul class="codes">${codes || '<li class="fine">Chargement…</li>'}</ul>
+        <p class="fine">Le code Administrateur te donne ces droits : garde-le pour toi.</p>
+      </section>
+
+      <section class="card reset">
+        <h3>Remise à zéro</h3>
+        <p class="fine">Efface tous les messages, photos, membres et abonnements, par exemple après les tests et avant le départ. Tu restes administrateur et les codes sont conservés. Chacun devra rejoindre à nouveau.</p>
+        <label class="field" for="reset-confirm">Tape EFFACER pour confirmer<input id="reset-confirm" type="text" autocomplete="off" autocapitalize="characters" placeholder="EFFACER"></label>
+        <button type="button" class="btn small danger-btn" data-act="adm-reset">Tout effacer</button>
+      </section>
+    </div>`;
+  }
+
+  async function loadAdmin() {
+    S.adm.loading = true;
+    if (S.tab === 'admin') renderMain();
+    try {
+      const [diag, members, codes] = await Promise.all([db.adminStatus(), db.adminMembers(), db.adminCodes()]);
+      S.adm.checks = buildChecks(diag);
+      S.adm.members = members || [];
+      S.adm.codes = codes || [];
+    } catch (err) {
+      S.adm.checks = buildChecks({ stErr: err.message });
+    }
+    S.adm.loading = false;
+    if (S.tab === 'admin') renderMain();
+  }
+
+  async function adminAction(act, t) {
+    const A = S.adm;
+    try {
+      switch (act) {
+        case 'adm-refresh': return loadAdmin();
+        case 'adm-cancel': A.ask = null; return renderMain();
+        case 'adm-ask-remove': A.ask = { type: 'remove', id: t.dataset.id }; return renderMain();
+        case 'adm-ask-regen': A.ask = { type: 'regen', role: t.dataset.r }; return renderMain();
+        case 'adm-remove': {
+          const m = A.members.find((x) => x.id === t.dataset.id);
+          await db.adminRemove(t.dataset.id); A.ask = null;
+          toast(`${m?.name || 'Le membre'} est retiré. Pense à changer le code ${ROLE_LABEL[m?.role] || ''}.`);
+          S.members = await db.members();
+          return loadAdmin();
+        }
+        case 'adm-restore': await db.adminRestore(t.dataset.id); toast('Membre réintégré.'); S.members = await db.members(); return loadAdmin();
+        case 'adm-regen': {
+          const code = await db.adminRegenerate(t.dataset.r); A.ask = null;
+          toast(`Nouveau code : ${code}`);
+          A.codes = await db.adminCodes(); return renderMain();
+        }
+        case 'adm-copy': return copyText(t.dataset.copy, $(`#code-${t.dataset.r}`));
+        case 'adm-test-push': {
+          const r = await db.adminTestPush();
+          toast(r.sent ? `Notification envoyée sur ${r.sent} téléphone${r.sent > 1 ? 's' : ''}.` : r.total ? `Échec de l'envoi (${(r.errors || []).join(', ') || 'erreur inconnue'}) : vérifie les clés VAPID.` : 'Aucun téléphone abonné : active les notifications ici.');
+          return;
+        }
+        case 'adm-reset': {
+          const v = ($('#reset-confirm')?.value || '').trim().toUpperCase();
+          if (v !== 'EFFACER') { toast('Tape EFFACER dans le champ pour confirmer.'); $('#reset-confirm')?.focus(); return; }
+          toast('Remise à zéro en cours…');
+          await db.adminReset(v);
+          S.members = await db.members(); S.messages = await db.list().catch(() => []);
+          toast(DEMO ? 'Démo : rien n\'a été effacé pour de vrai.' : 'Toutes les données ont été effacées.');
+          renderHeader();
+          return loadAdmin();
+        }
+      }
+    } catch (err) {
+      toast(err.message || 'L\'opération a échoué.');
+    }
+  }
+
   function accountHtml() {
     const ask = S.ask;
     const confirmBox = (title, text, act, label) => `<div class="confirm" role="alertdialog" aria-label="${title}">
@@ -1079,10 +1330,10 @@
       </div>`;
     return `<h2 class="section-title">Mon compte</h2>
       <div class="card account">
-        <p class="fine">Connecté en tant que <b>${esc(S.me?.name || '')}</b> · ${isTraveler() ? 'voyageur' : 'groupe'}</p>
+        <p class="fine">Connecté en tant que <b>${esc(S.me?.name || '')}</b> · ${isTraveler() ? 'voyageur' : S.me?.is_admin ? 'groupe, administrateur' : 'groupe'}</p>
         ${ask === 'logout' ? confirmBox('Se déconnecter ?', 'Pour revenir, il faudra le code d\'invitation et ton prénom. Tes messages restent dans le groupe. Ce téléphone ne recevra plus de notifications.', 'logout', 'Se déconnecter')
           : ask === 'raz' ? confirmBox('Réinitialiser l\'appli sur ce téléphone ?', 'Déconnexion, arrêt des notifications, effacement des réglages et des fichiers gardés hors ligne. Rien n\'est supprimé pour le groupe.', 'raz', 'Tout réinitialiser')
-          : `<div class="row"><button type="button" class="btn small" data-act="ask-logout">Se déconnecter</button><button type="button" class="btn small" data-act="ask-raz">RAZ de l'appli</button></div>`}
+          : `<div class="row">${S.me?.is_admin ? '<button type="button" class="btn small jade" data-act="open-admin">Administration</button>' : ''}<button type="button" class="btn small" data-act="ask-logout">Se déconnecter</button><button type="button" class="btn small" data-act="ask-raz">RAZ de l'appli</button></div>`}
       </div>`;
   }
 
@@ -1113,7 +1364,7 @@
     $('#main').innerHTML = `<form class="join" id="join-form">
       <h2>Le road trip de ${esc(CFG.TRAVELER_NAME)} en Asie</h2>
       <p class="muted" style="margin:0">Entre ton prénom et le code d'invitation que t'a transmis l'organisateur.</p>
-      ${DEMO ? '<p class="fine">Démo : tape n\'importe quel code commençant par GRP- (groupe) ou VOY- (voyageur).</p>' : ''}
+      ${DEMO ? '<p class="fine">Démo : tape n\'importe quel code commençant par GRP- (groupe), VOY- (voyageur) ou ADM- (administrateur).</p>' : ''}
       <label class="field" for="join-name">Prénom<input id="join-name" required maxlength="40" autocomplete="given-name"></label>
       <label class="field" for="join-code">Code d'invitation<input id="join-code" required autocomplete="off" autocapitalize="characters" placeholder="GRP-XXXXXXXX"></label>
       ${error ? `<p role="alert" style="color:var(--sos);margin:0">${esc(error)}</p>` : ''}
@@ -1251,6 +1502,7 @@
       return;
     }
     if (t.dataset.quick) { await send({ kind: 'texte', body: t.dataset.quick }).catch(() => {}); S.replyTo = null; renderFooter(); return; }
+    if (t.dataset.act?.startsWith('adm-')) return adminAction(t.dataset.act, t);
     switch (t.dataset.act) {
       case 'push': return enablePush();
       case 'checkin': return doCheckin().catch(() => {});
@@ -1287,6 +1539,7 @@
       case 'cancel-ask': S.ask = null; renderMain(); return;
       case 'logout': return logout();
       case 'raz': return resetApp();
+      case 'open-admin': S.tab = 'admin'; S.adm.ask = null; renderMain({ top: true }); $('#main').scrollTop = 0; renderFooter(); return loadAdmin();
       case 'copy-sos': return copyText(S.sos.text || '', $('#sos-copy-text'));
       case 'install':
         if (S.installEvt) { S.installEvt.prompt(); S.installEvt = null; renderMain(); }

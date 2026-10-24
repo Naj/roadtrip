@@ -241,6 +241,42 @@ label.field input, label.field select { border: 1px solid var(--line); backgroun
 .confirm { display: grid; gap: 6px; border: 1px solid var(--sos); background: var(--sos-soft); border-radius: 12px; padding: 12px; }
 .danger-btn { background: var(--sos); border-color: var(--sos); color: #fff; }
 
+/* Administration */
+.admin h2 { margin: 0; font: 700 1.25rem/1.2 var(--f-display); }
+.admin h3 { margin: 0; font: 700 1rem/1.25 var(--f-display); }
+.adm-top { display: grid; gap: 4px; justify-items: start; }
+.adm-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.adm-summary { margin: 0; padding: 10px 12px; border-radius: 10px; font-size: .88rem; }
+.adm-summary.ok { background: var(--jade-soft); }
+.adm-summary.ko { background: var(--sos-soft); }
+.adm-summary b { font: 700 1.05rem var(--f-display); font-variant-numeric: tabular-nums; }
+.adm-group { display: grid; gap: 6px; }
+.checks, .members, .codes { list-style: none; margin: 0; padding: 0; display: grid; }
+.chk { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: start; }
+.chk:last-child { border-bottom: 0; }
+.chk > div { display: grid; gap: 1px; min-width: 0; }
+.chk strong { font-size: .9rem; }
+.chk span:not(.chk-ic) { font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
+.chk-ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 .78rem var(--f-body); color: #fff; margin-top: 1px; }
+.chk.ok .chk-ic { background: var(--jade); }
+.chk.warn .chk-ic { background: var(--saffron); }
+.chk.ko .chk-ic { background: var(--sos); }
+.mem { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.mem:last-child { border-bottom: 0; }
+.mem > .confirm { grid-column: 1 / -1; }
+.mem.removed .mem-main { opacity: .6; }
+.mem-main { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; min-width: 0; }
+.mem-main .fine { flex-basis: 100%; }
+.role-chip { font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.role-chip.voyageur { background: var(--jade-soft); color: var(--jade); }
+.role-chip.admin { background: var(--saffron-soft); color: var(--saffron); }
+.code-row { display: grid; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.code-row:last-child { border-bottom: 0; }
+.code-row > div:first-child { display: grid; gap: 2px; }
+.code { font: 500 1.05rem var(--f-mono); letter-spacing: .04em; user-select: all; }
+.code-row .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.card.reset { border-color: var(--sos); }
+
 /* État de l'enveloppe, côté groupe */
 .seal-tag { display: inline-flex; align-items: center; gap: 4px; color: var(--saffron); font-weight: 600; }
 .seal-tag.open { color: var(--muted); font-weight: 400; }
