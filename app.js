@@ -260,6 +260,8 @@
       pushStatus: async () => (pushOn ? 'on' : 'off'),
       async enablePush() { pushOn = true; },
       async sealedSummary() { return null; },
+      async join(code) { role = /^VOY/i.test(String(code).trim()) ? 'voyageur' : 'groupe'; store.set('oscc-demo-role', role); return meFor(role); },
+      async signOut() { pushOn = false; },
     };
   }
 
@@ -376,6 +378,15 @@
         if (error) throw new Error("L'abonnement n'a pas pu être enregistré.");
       },
       // Pour le voyageur : nombre de messages encore sous enveloppe (sans leur contenu)
+      async signOut() {
+        try {
+          const reg = await navigator.serviceWorker?.getRegistration();
+          const sub = reg && (await reg.pushManager.getSubscription());
+          if (sub) { await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
+        } catch { /* on continue la déconnexion */ }
+        await sb.auth.signOut();
+        me = null;
+      },
       async sealedSummary() {
         if (me?.role !== 'voyageur') return null;
         const { data } = await sb.rpc('sealed_summary');
@@ -988,6 +999,7 @@
         <button type="button" class="btn jade" data-act="checkin">Je vais bien, partager mon étape</button>
       </div>
       ${installCard()}
+      ${accountHtml()}
     </div>`;
   }
 
@@ -1006,6 +1018,7 @@
       <h2 class="section-title">Référents</h2>
       ${referentsHtml()}
       ${installCard()}
+      ${accountHtml()}
     </div>`;
   }
 
@@ -1058,13 +1071,49 @@
 
   function renderAll(opts) { renderHeader(); renderBanners(); renderMain(opts); renderFooter(); }
 
+  function accountHtml() {
+    const ask = S.ask;
+    const confirmBox = (title, text, act, label) => `<div class="confirm" role="alertdialog" aria-label="${title}">
+        <strong>${title}</strong><p class="fine">${text}</p>
+        <div class="row"><button type="button" class="btn small danger-btn" data-act="${act}">${label}</button><button type="button" class="btn small" data-act="cancel-ask">Annuler</button></div>
+      </div>`;
+    return `<h2 class="section-title">Mon compte</h2>
+      <div class="card account">
+        <p class="fine">Connecté en tant que <b>${esc(S.me?.name || '')}</b> · ${isTraveler() ? 'voyageur' : 'groupe'}</p>
+        ${ask === 'logout' ? confirmBox('Se déconnecter ?', 'Pour revenir, il faudra le code d\'invitation et ton prénom. Tes messages restent dans le groupe. Ce téléphone ne recevra plus de notifications.', 'logout', 'Se déconnecter')
+          : ask === 'raz' ? confirmBox('Réinitialiser l\'appli sur ce téléphone ?', 'Déconnexion, arrêt des notifications, effacement des réglages et des fichiers gardés hors ligne. Rien n\'est supprimé pour le groupe.', 'raz', 'Tout réinitialiser')
+          : `<div class="row"><button type="button" class="btn small" data-act="ask-logout">Se déconnecter</button><button type="button" class="btn small" data-act="ask-raz">RAZ de l'appli</button></div>`}
+      </div>`;
+  }
+
+  async function logout() {
+    await db.signOut().catch(() => {});
+    S.me = null; S.ask = null; S.replyTo = null; S.writeOpen = false; S.expanded = null; S.tab = 'pays';
+    renderJoin();
+  }
+
+  async function resetApp() {
+    await db.signOut().catch(() => {});
+    ['oscc-country', 'oscc-demo-role', 'rt-opened'].forEach((k) => { try { localStorage.removeItem(k); } catch { /* indisponible */ } });
+    if (DEMO) {
+      CLOCK.shift = 0;
+      Object.assign(S, { me: null, ask: null, replyTo: null, writeOpen: false, expanded: null, tab: 'pays', country: '', draft: '' });
+      toast('Démo réinitialisée.');
+      return renderJoin();
+    }
+    try { for (const k of await caches.keys()) await caches.delete(k); } catch { /* indisponible */ }
+    try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch { /* indisponible */ }
+    location.replace(location.pathname);
+  }
+
   function renderJoin(error = '') {
     $('#hdr').innerHTML = `<div class="sky"><div class="brand"><img src="${LOGO}" alt="" width="30" height="30"><h1>ROADTRIP<small>Rejoindre le groupe</small></h1></div></div>`;
     $('#bnr').innerHTML = '';
     $('#ftr').innerHTML = '';
     $('#main').innerHTML = `<form class="join" id="join-form">
-      <h2>Garde le lien avec ${esc(CFG.TRAVELER_NAME)} pendant son voyage en Asie</h2>
+      <h2>Le road trip de ${esc(CFG.TRAVELER_NAME)} en Asie</h2>
       <p class="muted" style="margin:0">Entre ton prénom et le code d'invitation que t'a transmis l'organisateur.</p>
+      ${DEMO ? '<p class="fine">Démo : tape n\'importe quel code commençant par GRP- (groupe) ou VOY- (voyageur).</p>' : ''}
       <label class="field" for="join-name">Prénom<input id="join-name" required maxlength="40" autocomplete="given-name"></label>
       <label class="field" for="join-code">Code d'invitation<input id="join-code" required autocomplete="off" autocapitalize="characters" placeholder="GRP-XXXXXXXX"></label>
       ${error ? `<p role="alert" style="color:var(--sos);margin:0">${esc(error)}</p>` : ''}
@@ -1233,6 +1282,11 @@
         return;
       }
       case 'demo-reset': CLOCK.shift = 0; renderAll({ top: true }); $('#main').scrollTop = 0; return;
+      case 'ask-logout': S.ask = 'logout'; renderMain(); return;
+      case 'ask-raz': S.ask = 'raz'; renderMain(); return;
+      case 'cancel-ask': S.ask = null; renderMain(); return;
+      case 'logout': return logout();
+      case 'raz': return resetApp();
       case 'copy-sos': return copyText(S.sos.text || '', $('#sos-copy-text'));
       case 'install':
         if (S.installEvt) { S.installEvt.prompt(); S.installEvt = null; renderMain(); }
@@ -1296,10 +1350,9 @@
     S.tab = 'pays';
     if (isTraveler() && !S.country) S.country = currentCountry();
     renderAll({ toBottom: true });
-    db.onMessage(addMessage);
+    if (!S.started) { S.started = true; db.onMessage(addMessage); setInterval(() => S.me && renderHeader(), 60000); }
     const hash = location.hash.match(/^#m-(.+)$/);
     if (hash) setTimeout(() => gotoMessage(hash[1]), 300);
-    setInterval(renderHeader, 60000);
   }
 
   (async () => {

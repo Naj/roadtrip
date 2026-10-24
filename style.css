@@ -236,6 +236,11 @@ label.field input, label.field select { border: 1px solid var(--line); backgroun
 .mail-next { text-align: center; }
 .chip svg { width: 14px; height: 14px; }
 
+/* Mon compte */
+.account .row, .confirm .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.confirm { display: grid; gap: 6px; border: 1px solid var(--sos); background: var(--sos-soft); border-radius: 12px; padding: 12px; }
+.danger-btn { background: var(--sos); border-color: var(--sos); color: #fff; }
+
 /* État de l'enveloppe, côté groupe */
 .seal-tag { display: inline-flex; align-items: center; gap: 4px; color: var(--saffron); font-weight: 600; }
 .seal-tag.open { color: var(--muted); font-weight: 400; }
