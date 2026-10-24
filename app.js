@@ -266,6 +266,18 @@
   // ---------------------------------------------------------------------
   // Données : mode réel (Supabase)
   // ---------------------------------------------------------------------
+  // Traduit l'erreur de connexion de Supabase en consigne claire
+  function explainAuthError(error) {
+    const msg = String(error?.message || '');
+    const status = error?.status;
+    if (/anonymous sign-ins are disabled/i.test(msg)) return "Connexions anonymes désactivées : active « Allow anonymous sign-ins » dans Authentication > Sign In / Providers, puis clique sur Save changes en bas de la page.";
+    if (/captcha/i.test(msg)) return "La protection captcha bloque la connexion : désactive-la dans Authentication > Attack Protection.";
+    if (status === 429 || /rate limit|too many/i.test(msg)) return "Trop de tentatives de connexion pour l'instant. Attends une heure, ou augmente la limite dans Authentication > Rate Limits.";
+    if (status === 401 || /invalid api key|jwt|apikey/i.test(msg)) return "La clé SUPABASE_ANON_KEY de config.js est refusée. Recopie la clé « anon public » (elle commence par eyJ) depuis Project Settings > API.";
+    if (!status || /failed to fetch|network|load failed/i.test(msg)) return "Impossible de joindre Supabase. Vérifie SUPABASE_URL dans config.js et que le projet n'est pas en pause.";
+    return `Connexion impossible (${status || '?'}) : ${msg}`;
+  }
+
   function SupaStore() {
     const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
     const SELECT = '*, author:members(name, role)';
@@ -295,12 +307,17 @@
       },
       async join(code, name) {
         const { data: { session } } = await sb.auth.getSession();
+        if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(CFG.SUPABASE_URL)) {
+          throw new Error("SUPABASE_URL est mal écrite dans config.js. Format attendu : https://xxxx.supabase.co (sans / à la fin).");
+        }
         if (!session) {
           const { error } = await sb.auth.signInAnonymously();
-          if (error) throw new Error("Connexion impossible. Vérifie que « Anonymous sign-ins » est activé dans Supabase.");
+          if (error) throw new Error(explainAuthError(error));
         }
         const { error } = await sb.rpc('join_group', { p_code: code, p_name: name });
-        if (error) throw new Error(error.message);
+        if (error) throw new Error(/function|schema cache/i.test(error.message)
+          ? "La base n'est pas prête : exécute supabase/schema.sql dans le SQL Editor."
+          : error.message);
         return this.init();
       },
       async members() {
