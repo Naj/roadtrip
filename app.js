@@ -17,13 +17,19 @@
   // Référentiels
   // ---------------------------------------------------------------------
   const POKES = [
-    { id: 'pense',   emo: '💭', label: 'Je pense à toi',       verb: 'pense à toi' },
-    { id: 'cafe',    emo: '☕', label: 'Café',                 verb: "t'offre un café" },
-    { id: 'calin',   emo: '🤗', label: 'Câlin',                verb: "t'envoie un câlin" },
-    { id: 'courage', emo: '💪', label: 'Courage',              verb: "t'envoie du courage" },
-    { id: 'bureau',  emo: '😂', label: 'Tu manques au bureau', verb: 'dit que tu manques au bureau' },
+    { id: 'pense',   emo: '💭', label: 'On pense à toi',    verb: 'pense à toi' },
+    { id: 'courage', emo: '💪', label: 'Courage',           verb: "t'envoie du courage" },
+    { id: 'om',      emo: '⚽', label: "L'OM se maintient", verb: "t'annonce que l'OM se maintient" },
+    { id: 'amuse',   emo: '🎉', label: 'Amuse-toi bien',    verb: 'te souhaite de bien t\'amuser' },
+    { id: 'salut',   emo: '👋', label: 'On te salue',       verb: 'te salue' },
   ];
-  const POKE = Object.fromEntries(POKES.map((p) => [p.id, p]));
+  // Anciens pokes, gardés seulement pour afficher les messages déjà envoyés
+  const OLD_POKES = [
+    { id: 'cafe',   emo: '☕', label: 'Café',                 verb: "t'offre un café" },
+    { id: 'calin',  emo: '🤗', label: 'Câlin',                verb: "t'envoie un câlin" },
+    { id: 'bureau', emo: '😂', label: 'Tu manques au bureau', verb: 'dit que tu manques au bureau' },
+  ];
+  const POKE = Object.fromEntries([...POKES, ...OLD_POKES].map((p) => [p.id, p]));
 
   // Numéros d'urgence — à revérifier avant le départ sur diplomatie.gouv.fr (Conseils aux voyageurs)
   const COUNTRIES = {
@@ -200,32 +206,32 @@
     add(T, prev(5, 12), { kind: 'checkin', body: 'Bangkok', country: 'TH', lat: 13.7563, lng: 100.5018, accuracy: 18, battery: 92 });
     add(T, prev(5, 14), { kind: 'photo', body: 'Premier pad thaï au marché de nuit, je valide.', photo_url: P.thai });
     add('u-0', prev(6, 8), { body: 'Bon voyage Antoine ! Le bureau est déjà beaucoup trop calme sans toi.' });
-    add('u-1', prev(6, 9), { kind: 'poke', poke: 'cafe' });
+    add('u-1', prev(6, 9), { kind: 'poke', poke: 'pense' });
     add('u-2', prev(9, 16), { kind: 'photo', body: 'On arrose ta plante tous les lundis. Elle te passe le bonjour.', photo_url: P.plante });
     add('u-3', prev(12, 11), { body: 'Tu nous dois une carte postale de chaque pays. Une vraie, avec un timbre !' });
     add(T, prev(13, 9), { kind: 'checkin', body: 'Chiang Mai', country: 'TH', lat: 18.7883, lng: 98.9853, accuracy: 22, battery: 71 });
-    add('u-4', prev(15, 18), { kind: 'poke', poke: 'calin' });
+    add('u-4', prev(15, 18), { kind: 'poke', poke: 'salut' });
     add('u-6', prev(18, 10), { kind: 'poke', poke: 'courage' });
     add(T, prev(22, 7), { kind: 'checkin', body: 'Luang Prabang', country: 'LA', lat: 19.8856, lng: 102.1347, accuracy: 30, battery: 64 });
     const mekong = add(T, prev(22, 8), { kind: 'photo', body: 'Lever de soleil sur le Mékong. 5 h du matin, ça valait le coup.', photo_url: P.mekong });
     add('u-5', prev(23, 9), { body: "Ce lever de soleil… Je l'ai mis en fond d'écran, toute l'équipe est jalouse.", reply_to: mekong.id });
-    add('u-7', prev(25, 15), { kind: 'poke', poke: 'bureau' });
-    add('u-8', prev(26, 9), { kind: 'poke', poke: 'cafe' });
+    add('u-7', prev(25, 15), { kind: 'poke', poke: 'om' });
+    add('u-8', prev(26, 9), { kind: 'poke', poke: 'amuse' });
     add('u-9', prev(27, 17), { kind: 'photo', body: 'Le pot de rentrée, version sans toi. On a gardé ta chaise.', photo_url: P.pot });
     const firstMonth = add('u-0', prev(28, 18), { body: 'Premier mois bouclé ! Profite de chaque jour, on a hâte de lire la suite.' });
     // Le mois en cours (sous enveloppe pour Antoine)
     add(T, cur(0.04), { body: `Je viens d'ouvrir le courrier de ${prevName}. J'ai eu les larmes aux yeux, merci à tous 🙏`, reply_to: firstMonth.id });
     add(T, cur(0.25), { kind: 'checkin', body: 'Hanoï', country: 'VN', lat: 21.0278, lng: 105.8342, accuracy: 15, battery: 80 });
     add('u-1', cur(0.35), { body: 'On a gagné le challenge du trimestre ! On te garde ta part de gâteau 🎂' });
-    add('u-2', cur(0.45), { kind: 'poke', poke: 'calin' });
+    add('u-2', cur(0.45), { kind: 'poke', poke: 'salut' });
     add('u-10', cur(0.55), { body: 'Le distributeur de café du 2e est enfin réparé. On a pensé à toi au premier expresso.' });
     add('u-0', cur(0.65), { kind: 'photo', body: "La photo d'équipe de vendredi. Tu étais là en carton 😄", photo_url: P.team });
-    add('u-5', cur(0.75), { kind: 'poke', poke: 'bureau' });
+    add('u-5', cur(0.75), { kind: 'poke', poke: 'om' });
     add('u-12', cur(0.8), { kind: 'poke', poke: 'courage' });
     add(T, recent(5, 0.85), { kind: 'checkin', body: "Baie d'Ha Long", country: 'VN', lat: 20.9101, lng: 107.1839, accuracy: 25, battery: 58 });
     const halong = add(T, recent(4.8, 0.86), { kind: 'photo', body: 'Nuit sur un bateau au milieu des pitons. Irréel.', photo_url: P.halong });
     add('u-13', recent(1, 0.95), { body: 'Ha Long, sérieusement ? Garde-moi une place sur le bateau.', reply_to: halong.id });
-    add('u-3', recent(0.5, 0.97), { kind: 'poke', poke: 'cafe' });
+    add('u-3', recent(0.5, 0.97), { kind: 'poke', poke: 'amuse' });
     msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     const decorate = (m) => ({ ...m, author_name: by(m.author_id)?.name ?? '?', author_role: by(m.author_id)?.role ?? 'groupe' });
 
@@ -306,7 +312,7 @@
   // n'envoie pas de pré-vérification CORS, ce qui évite la plupart des blocages.
   async function callFn(body) {
     try {
-      const res = await fetch(`${CFG.SUPABASE_URL}/functions/v1/send-push`, { method: 'POST', body: JSON.stringify(body) });
+      const res = await fetch(`${CFG.SUPABASE_URL}/functions/v1/${CFG.PUSH_FUNCTION || 'send-push'}`, { method: 'POST', body: JSON.stringify(body) });
       const text = await res.text();
       let data = null;
       try { data = JSON.parse(text); } catch { /* réponse texte */ }
@@ -453,6 +459,7 @@
         const r = await callFn({ type: 'TEST_PUSH', token: session?.access_token });
         if (r.failed || !r.data) throw new Error('La fonction send-push n\'a pas répondu : consulte l\'état de l\'installation.');
         if (r.data.error) throw new Error(r.data.error);
+        if (typeof r.data.sent !== 'number') throw new Error('Réponse inattendue de la fonction : consulte l\'état de l\'installation.');
         return r.data;
       },
       async adminReset(confirm) {
@@ -580,7 +587,7 @@
     if (m.kind === 'poke') {
       const p = POKE[m.poke] || POKE.pense;
       const who = mine ? 'Tu' : esc(m.author_name);
-      const text = isTraveler() ? `<b>${who}</b> ${p.verb}` : `<b>${who}</b> → ${esc(travelerName())} : ${p.label.toLowerCase()}`;
+      const text = isTraveler() ? `<b>${who}</b> ${p.verb}` : `<b>${who}</b> → ${esc(travelerName())} : ${p.label}`;
       return `<div class="poke-line" id="m-${m.id}"><span class="emo" aria-hidden="true">${p.emo}</span><span>${text}</span><time>${t}</time>${sealTag(m, true)}</div>`;
     }
     if (m.kind === 'checkin') {
@@ -1179,11 +1186,11 @@
     // Notifications
     add('Notifications', 'Clé publique dans config.js', DEMO || CFG.VAPID_PUBLIC_KEY ? 'ok' : 'ko', DEMO || CFG.VAPID_PUBLIC_KEY ? 'VAPID_PUBLIC_KEY renseignée.' : 'VAPID_PUBLIC_KEY est vide dans config.js (étape 5).');
     if (pingErr === 'old') add('Notifications', 'Fonction send-push', 'ko', 'Une ancienne version est déployée : recolle le nouveau index.ts dans la fonction et redéploie.');
-    else if (pingErr === 'jwt' || (pingErr === 'blocked' && st?.events?.webhook))
+    else if (pingErr === 'jwt')
       add('Notifications', 'Fonction send-push', 'ko', 'La fonction tourne (le webhook l\'utilise), mais elle refuse les appels de l\'appli : la vérification JWT est encore activée. Dans Edge Functions > send-push, ouvre les réglages (Details ou Settings), désactive « Enforce JWT verification » (Verify JWT) et enregistre.');
-    else if (pingErr === 'missing') add('Notifications', 'Fonction send-push', 'ko', 'Aucune fonction nommée exactement send-push : vérifie son nom dans Edge Functions (étape 3).');
+    else if (pingErr === 'missing') add('Notifications', 'Fonction send-push', 'ko', `Aucune fonction à l'adresse …/functions/v1/${CFG.PUSH_FUNCTION || 'send-push'}. Dans Edge Functions, regarde la fin de l'URL de ta fonction et recopie-la dans PUSH_FUNCTION (config.js).`);
     else if (pingErr?.startsWith('http-')) add('Notifications', 'Fonction send-push', 'ko', `La fonction plante (erreur ${pingErr.slice(5)}) : ouvre son onglet Logs. Cause fréquente : secrets VAPID absents ou mal copiés.${pingDetail ? ` Détail : ${pingDetail}` : ''}`);
-    else if (pingErr || !ping) add('Notifications', 'Fonction send-push', 'ko', 'La fonction ne répond pas à l\'appli. Vérifie dans cet ordre : son nom est exactement send-push ; « Enforce JWT verification » est désactivé dans ses réglages ; le nouveau index.ts est déployé (il contient le mot PING).');
+    else if (pingErr || !ping) add('Notifications', 'Fonction send-push', 'ko', `La fonction ne répond pas à l'adresse …/functions/v1/${CFG.PUSH_FUNCTION || 'send-push'}. Vérifie dans cet ordre : la fin de l'URL de la fonction (Edge Functions) est identique à PUSH_FUNCTION dans config.js ; « Enforce JWT verification » est désactivé ; le nouveau index.ts est déployé.`);
     else {
       add('Notifications', 'Fonction send-push', 'ok', 'Déployée et joignable.');
       add('Notifications', 'Clés VAPID dans les secrets', ping.vapid ? 'ok' : 'ko', ping.vapid ? 'Présentes et valides.' : `Absentes ou invalides (étape 3)${ping.vapidError ? ` : ${ping.vapidError}` : ''}.`);

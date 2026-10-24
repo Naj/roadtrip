@@ -1,5 +1,5 @@
 // ROADTRIP — service worker : hors-ligne + notifications
-const CACHE = 'roadtrip-v9';
+const CACHE = 'roadtrip-v10';
 const SHELL = [
   './', './index.html', './style.css', './app.js', './config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/badge-96.png',
