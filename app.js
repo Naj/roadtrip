@@ -302,6 +302,20 @@
     return `Connexion impossible (${status || '?'}) : ${msg}`;
   }
 
+  // Appel « simple » de la fonction send-push : sans en-tête particulier, le navigateur
+  // n'envoie pas de pré-vérification CORS, ce qui évite la plupart des blocages.
+  async function callFn(body) {
+    try {
+      const res = await fetch(`${CFG.SUPABASE_URL}/functions/v1/send-push`, { method: 'POST', body: JSON.stringify(body) });
+      const text = await res.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch { /* réponse texte */ }
+      return { status: res.status, text, data };
+    } catch (err) {
+      return { failed: true, text: String(err?.message || err) };
+    }
+  }
+
   function SupaStore() {
     const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
     const SELECT = '*, author:members(name, role)';
@@ -410,19 +424,13 @@
         me = null;
       },
       async adminStatus() {
-        const [st, ping] = await Promise.all([
-          sb.rpc('admin_status'),
-          sb.functions.invoke('send-push', { body: { type: 'PING', vapidPublic: CFG.VAPID_PUBLIC_KEY } }).catch((error) => ({ error })),
-        ]);
-        let pingErr = null, pingDetail = '';
-        if (ping.error) {
-          const status = ping.error.context?.status;
-          try { pingDetail = String(await ping.error.context?.text?.() || '').slice(0, 160); } catch { /* corps illisible */ }
-          pingErr = status === 401 || /Accès refusé/.test(pingDetail) ? 'old'
-            : status === 404 ? 'missing'
-            : status ? `http-${status}` : 'blocked';
-        }
-        return { st: st.data, stErr: st.error?.message, ping: ping.data, pingErr, pingDetail };
+        const [st, ping] = await Promise.all([sb.rpc('admin_status'), callFn({ type: 'PING', vapidPublic: CFG.VAPID_PUBLIC_KEY })]);
+        let pingErr = null;
+        if (ping.failed) pingErr = 'blocked';
+        else if (ping.status === 401) pingErr = /Accès refusé/.test(ping.text) ? 'old' : 'jwt';
+        else if (ping.status === 404) pingErr = 'missing';
+        else if (ping.status >= 400 || !ping.data?.ok) pingErr = `http-${ping.status}`;
+        return { st: st.data, stErr: st.error?.message, ping: pingErr ? null : ping.data, pingErr, pingDetail: (ping.text || '').slice(0, 160) };
       },
       async adminMembers() { const { data, error } = await sb.rpc('admin_members'); if (error) throw error; return data; },
       async adminRemove(id) { const { error } = await sb.rpc('admin_remove_member', { p_id: id }); if (error) throw error; },
@@ -430,9 +438,11 @@
       async adminCodes() { const { data, error } = await sb.rpc('admin_codes'); if (error) throw error; return data; },
       async adminRegenerate(r) { const { data, error } = await sb.rpc('admin_regenerate_code', { p_role: r }); if (error) throw error; return data; },
       async adminTestPush() {
-        const { data, error } = await sb.functions.invoke('send-push', { body: { type: 'TEST_PUSH' } });
-        if (error) throw new Error('La fonction send-push n\'a pas répondu : consulte l\'état de l\'installation.');
-        return data;
+        const { data: { session } } = await sb.auth.getSession();
+        const r = await callFn({ type: 'TEST_PUSH', token: session?.access_token });
+        if (r.failed || !r.data) throw new Error('La fonction send-push n\'a pas répondu : consulte l\'état de l\'installation.');
+        if (r.data.error) throw new Error(r.data.error);
+        return r.data;
       },
       async adminReset(confirm) {
         // Photos d'abord (un dossier par membre), puis les données
@@ -1158,9 +1168,11 @@
     // Notifications
     add('Notifications', 'Clé publique dans config.js', DEMO || CFG.VAPID_PUBLIC_KEY ? 'ok' : 'ko', DEMO || CFG.VAPID_PUBLIC_KEY ? 'VAPID_PUBLIC_KEY renseignée.' : 'VAPID_PUBLIC_KEY est vide dans config.js (étape 5).');
     if (pingErr === 'old') add('Notifications', 'Fonction send-push', 'ko', 'Une ancienne version est déployée : recolle le nouveau index.ts dans la fonction et redéploie.');
+    else if (pingErr === 'jwt' || (pingErr === 'blocked' && st?.events?.webhook))
+      add('Notifications', 'Fonction send-push', 'ko', 'La fonction tourne (le webhook l\'utilise), mais elle refuse les appels de l\'appli : la vérification JWT est encore activée. Dans Edge Functions > send-push, ouvre les réglages (Details ou Settings), désactive « Enforce JWT verification » (Verify JWT) et enregistre.');
     else if (pingErr === 'missing') add('Notifications', 'Fonction send-push', 'ko', 'Aucune fonction nommée exactement send-push : vérifie son nom dans Edge Functions (étape 3).');
     else if (pingErr?.startsWith('http-')) add('Notifications', 'Fonction send-push', 'ko', `La fonction plante (erreur ${pingErr.slice(5)}) : ouvre son onglet Logs. Cause fréquente : secrets VAPID absents ou mal copiés.${pingDetail ? ` Détail : ${pingDetail}` : ''}`);
-    else if (pingErr || !ping) add('Notifications', 'Fonction send-push', 'ko', 'La fonction ne répond pas à l\'appli. Le plus souvent, l\'ancienne version est encore déployée : recolle le nouveau index.ts dans send-push et clique sur Deploy. Sinon, vérifie que son nom est exactement send-push.');
+    else if (pingErr || !ping) add('Notifications', 'Fonction send-push', 'ko', 'La fonction ne répond pas à l\'appli. Vérifie dans cet ordre : son nom est exactement send-push ; « Enforce JWT verification » est désactivé dans ses réglages ; le nouveau index.ts est déployé (il contient le mot PING).');
     else {
       add('Notifications', 'Fonction send-push', 'ok', 'Déployée et joignable.');
       add('Notifications', 'Clés VAPID dans les secrets', ping.vapid ? 'ok' : 'ko', ping.vapid ? 'Présentes et valides.' : `Absentes ou invalides (étape 3)${ping.vapidError ? ` : ${ping.vapidError}` : ''}.`);
