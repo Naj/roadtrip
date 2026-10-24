@@ -38,7 +38,7 @@ Les envois du groupe sont distribués le **1er du mois suivant, à 0 h UTC** (7 
 Le code `ADM-` (affiché par `schema.sql` avec les deux autres) fait de toi un membre du groupe avec les droits d'administration. Bouton **Administration** dans le bloc Mon compte (onglet Urgence) :
 
 - **État de l'installation** : 16 vérifications automatiques (config.js, base, fonction send-push et ses secrets, webhook et son dernier appel, tâche du 1er, voyageur inscrit…), chacune avec la marche à suivre si elle est au rouge. Bouton pour s'envoyer une notification de test.
-- **Membres** : liste, téléphones notifiés, **Retirer** (accès coupé tout de suite, messages conservés) ou **Réintégrer**.
+- **Membres** : liste, téléphones notifiés, **Retirer** (accès coupé tout de suite, messages conservés), **Réintégrer**, ou **Supprimer** définitivement un membre retiré (avec ses messages et photos).
 - **Codes d'invitation** : copier ou changer chaque code (l'ancien cesse de fonctionner).
 - **Remise à zéro** : efface messages, photos, membres et abonnements, en tapant EFFACER. Tu restes administrateur.
 

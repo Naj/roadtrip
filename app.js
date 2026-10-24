@@ -286,6 +286,7 @@
       },
       async adminRemove(id) { removed.set(id, new Date(nowMs()).toISOString()); },
       async adminRestore(id) { removed.delete(id); },
+      async adminDelete(id) { const i = members.findIndex((m) => m.id === id); if (i >= 0) members.splice(i, 1); removed.delete(id); },
       async adminCodes() { return Object.entries(codes).map(([role, code]) => ({ role, code })); },
       async adminRegenerate(r) { codes[r] = `${{ groupe: 'GRP', voyageur: 'VOY', admin: 'ADM' }[r]}-${Math.random().toString(16).slice(2, 10).toUpperCase()}`; return codes[r]; },
       async adminReset() { /* démo : rien n'est effacé */ },
@@ -452,6 +453,15 @@
       async adminMembers() { const { data, error } = await sb.rpc('admin_members'); if (error) throw error; return data; },
       async adminRemove(id) { const { error } = await sb.rpc('admin_remove_member', { p_id: id }); if (error) throw error; },
       async adminRestore(id) { const { error } = await sb.rpc('admin_restore_member', { p_id: id }); if (error) throw error; },
+      async adminDelete(id) {
+        // Photos du membre d'abord (son dossier), puis le membre et ses messages
+        const bucket = sb.storage.from('photos');
+        const { data: files } = await bucket.list(id, { limit: 1000 });
+        const paths = (files || []).map((x) => `${id}/${x.name}`);
+        if (paths.length) await bucket.remove(paths);
+        const { error } = await sb.rpc('admin_delete_member', { p_id: id });
+        if (error) throw new Error(/admin_delete_member/.test(error.message) ? 'Exécute d\'abord fix-admin-delete.sql dans le SQL Editor.' : error.message);
+      },
       async adminCodes() { const { data, error } = await sb.rpc('admin_codes'); if (error) throw error; return data; },
       async adminRegenerate(r) { const { data, error } = await sb.rpc('admin_regenerate_code', { p_role: r }); if (error) throw error; return data; },
       async adminTestPush() {
@@ -1248,15 +1258,19 @@
     const members = A.members.map((m) => {
       const self = m.id === S.me?.id;
       const role = m.is_admin ? 'admin' : m.role;
-      const asking = ask?.type === 'remove' && ask.id === m.id;
+      const asking = (ask?.type === 'remove' || ask?.type === 'delete') && ask.id === m.id;
+      const askDelete = ask?.type === 'delete';
       const action = self ? '<span class="fine">C\'est toi</span>'
-        : m.removed_at ? `<button type="button" class="btn small" data-act="adm-restore" data-id="${m.id}">Réintégrer</button>`
+        : m.removed_at ? `<div class="row"><button type="button" class="btn small" data-act="adm-restore" data-id="${m.id}">Réintégrer</button><button type="button" class="btn small" data-act="adm-ask-delete" data-id="${m.id}">Supprimer</button></div>`
           : `<button type="button" class="btn small" data-act="adm-ask-remove" data-id="${m.id}">Retirer</button>`;
       return `<li class="mem${m.removed_at ? ' removed' : ''}">
         <div class="mem-main"><strong>${esc(m.name)}</strong><span class="role-chip ${role}">${ROLE_LABEL[role]}</span>
           <span class="fine">${m.removed_at ? `Retiré le ${fmtDate(m.removed_at)}` : `Inscrit le ${fmtDate(m.created_at)} · ${m.devices ? `${m.devices} téléphone${m.devices > 1 ? 's' : ''} notifié${m.devices > 1 ? 's' : ''}` : 'sans notifications'}`}</span></div>
         ${asking ? '' : action}
-        ${asking ? `<div class="confirm"><strong>Retirer ${esc(m.name)} ?</strong>
+        ${asking && askDelete ? `<div class="confirm"><strong>Supprimer définitivement ${esc(m.name)} ?</strong>
+          <p class="fine">Le membre, tous ses messages, pokes et photos sont effacés, sans retour possible. Sa place est libérée.</p>
+          <div class="row"><button type="button" class="btn small danger-btn" data-act="adm-delete" data-id="${m.id}">Supprimer définitivement</button><button type="button" class="btn small" data-act="adm-cancel">Annuler</button></div></div>` : ''}
+        ${asking && !askDelete ? `<div class="confirm"><strong>Retirer ${esc(m.name)} ?</strong>
           <p class="fine">${role === 'voyageur' ? 'C\'est le voyageur : il ne pourra plus utiliser l\'appli, ni le bouton SOS. ' : ''}L'accès est coupé tout de suite et ses messages restent visibles. Pour qu'il ne puisse pas revenir depuis un autre téléphone, change ensuite le code ${ROLE_LABEL[m.role]}.</p>
           <div class="row"><button type="button" class="btn small danger-btn" data-act="adm-remove" data-id="${m.id}">Retirer</button><button type="button" class="btn small" data-act="adm-cancel">Annuler</button></div></div>` : ''}
       </li>`;
@@ -1285,6 +1299,15 @@
       <section class="card">
         <h3>Membres</h3>
         <ul class="members">${members || '<li class="fine">Chargement…</li>'}</ul>
+        ${(() => {
+          const gone = A.members.filter((m) => m.removed_at).length;
+          if (!gone) return '';
+          return ask?.type === 'purge'
+            ? `<div class="confirm"><strong>${gone > 1 ? `Supprimer les ${gone} membres retirés ?` : 'Supprimer le membre retiré ?'}</strong><p class="fine">Leurs messages, pokes et photos sont effacés définitivement.</p>
+                <div class="row"><button type="button" class="btn small danger-btn" data-act="adm-purge">Tout supprimer</button><button type="button" class="btn small" data-act="adm-cancel">Annuler</button></div></div>`
+            : `<button type="button" class="btn small" data-act="adm-ask-purge">${gone > 1 ? `Supprimer définitivement les ${gone} membres retirés` : 'Supprimer définitivement le membre retiré'}</button>`;
+        })()}
+        <p class="fine">Chaque « Se déconnecter » ou « RAZ » crée un nouveau compte au retour : les anciens apparaissent ici, tu peux les retirer puis les supprimer.</p>
       </section>
 
       <section class="card">
@@ -1330,6 +1353,23 @@
           await db.adminRemove(t.dataset.id); A.ask = null;
           toast(`${m?.name || 'Le membre'} est retiré. Pense à changer le code ${ROLE_LABEL[m?.role] || ''}.`);
           S.members = await db.members();
+          return loadAdmin();
+        }
+        case 'adm-ask-delete': A.ask = { type: 'delete', id: t.dataset.id }; return renderMain();
+        case 'adm-ask-purge': A.ask = { type: 'purge' }; return renderMain();
+        case 'adm-delete': {
+          const m = A.members.find((x) => x.id === t.dataset.id);
+          await db.adminDelete(t.dataset.id); A.ask = null;
+          toast(`Membre supprimé définitivement : ${m?.name || ''}`);
+          S.messages = await db.list().catch(() => S.messages);
+          return loadAdmin();
+        }
+        case 'adm-purge': {
+          const gone = A.members.filter((m) => m.removed_at);
+          for (const m of gone) await db.adminDelete(m.id);
+          A.ask = null;
+          toast(gone.length > 1 ? `${gone.length} membres supprimés définitivement.` : 'Membre supprimé définitivement.');
+          S.messages = await db.list().catch(() => S.messages);
           return loadAdmin();
         }
         case 'adm-restore': await db.adminRestore(t.dataset.id); toast('Membre réintégré.'); S.members = await db.members(); return loadAdmin();
