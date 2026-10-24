@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clés VAPID – ROADTRIP</title>
+<style>
+  :root { --bg:#F3F6F5; --fg:#1C2440; --muted:#5B6478; --card:#fff; --line:#D7DEE0; --accent:#2F8F7E; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141A2E; --fg:#EEF1F6; --muted:#A3ACBF; --card:#1D2440; --line:#2E3757; --accent:#4DB8A4; color-scheme: dark; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.55 system-ui, sans-serif; }
+  main { max-width:640px; margin:0 auto; padding:32px 16px; display:grid; gap:18px; }
+  h1 { font-size:1.4rem; margin:0; }
+  p { margin:0; color:var(--muted); }
+  button { font:inherit; font-weight:600; background:var(--accent); color:#fff; border:0; border-radius:10px; padding:12px 18px; cursor:pointer; justify-self:start; }
+  .field { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; display:grid; gap:8px; }
+  .field b { font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; }
+  code { font:13px/1.4 ui-monospace, monospace; word-break:break-all; user-select:all; }
+  .warn { border-left:3px solid #D9822B; padding-left:12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Générer les clés de notification (VAPID)</h1>
+  <p>Ces deux clés permettent à ton serveur Supabase d'envoyer des notifications. Tout est calculé dans ton navigateur, rien n'est envoyé nulle part.</p>
+  <button id="go" type="button">Générer une paire de clés</button>
+  <div id="out" hidden>
+    <div style="display:grid;gap:12px">
+      <div class="field"><b>Clé publique</b><code id="pub"></code><p>À coller dans <code>config.js</code> (VAPID_PUBLIC_KEY) et dans les secrets Supabase (VAPID_PUBLIC_KEY).</p></div>
+      <div class="field"><b>Clé privée</b><code id="priv"></code><p>À coller uniquement dans les secrets Supabase (VAPID_PRIVATE_KEY). Ne la mets jamais sur GitHub.</p></div>
+      <p class="warn">Génère les clés une seule fois. Si tu les changes plus tard, chaque téléphone devra réactiver les notifications.</p>
+    </div>
+  </div>
+</main>
+<script>
+  const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  document.getElementById('go').addEventListener('click', async () => {
+    const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    const raw = await crypto.subtle.exportKey('raw', pair.publicKey);
+    const jwk = await crypto.subtle.exportKey('jwk', pair.privateKey);
+    document.getElementById('pub').textContent = b64url(raw);
+    document.getElementById('priv').textContent = jwk.d;
+    document.getElementById('out').hidden = false;
+  });
+</script>
+</body>
+</html>
