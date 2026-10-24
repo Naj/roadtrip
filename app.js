@@ -414,9 +414,15 @@
           sb.rpc('admin_status'),
           sb.functions.invoke('send-push', { body: { type: 'PING', vapidPublic: CFG.VAPID_PUBLIC_KEY } }).catch((error) => ({ error })),
         ]);
-        let pingErr = null;
-        if (ping.error) pingErr = ping.error.context?.status === 401 ? 'old' : 'down';
-        return { st: st.data, stErr: st.error?.message, ping: ping.data, pingErr };
+        let pingErr = null, pingDetail = '';
+        if (ping.error) {
+          const status = ping.error.context?.status;
+          try { pingDetail = String(await ping.error.context?.text?.() || '').slice(0, 160); } catch { /* corps illisible */ }
+          pingErr = status === 401 || /Accès refusé/.test(pingDetail) ? 'old'
+            : status === 404 ? 'missing'
+            : status ? `http-${status}` : 'blocked';
+        }
+        return { st: st.data, stErr: st.error?.message, ping: ping.data, pingErr, pingDetail };
       },
       async adminMembers() { const { data, error } = await sb.rpc('admin_members'); if (error) throw error; return data; },
       async adminRemove(id) { const { error } = await sb.rpc('admin_remove_member', { p_id: id }); if (error) throw error; },
@@ -1130,7 +1136,7 @@
   // ---------------------------------------------------------------------
   const ROLE_LABEL = { groupe: 'Groupe', voyageur: 'Voyageur', admin: 'Admin' };
 
-  function buildChecks({ st, stErr, ping, pingErr }) {
+  function buildChecks({ st, stErr, ping, pingErr, pingDetail }) {
     const list = [];
     const add = (group, label, state, detail) => list.push({ group, label, state, detail });
     const evAgo = (e) => (e?.at ? ago(e.at) : '');
@@ -1152,7 +1158,9 @@
     // Notifications
     add('Notifications', 'Clé publique dans config.js', DEMO || CFG.VAPID_PUBLIC_KEY ? 'ok' : 'ko', DEMO || CFG.VAPID_PUBLIC_KEY ? 'VAPID_PUBLIC_KEY renseignée.' : 'VAPID_PUBLIC_KEY est vide dans config.js (étape 5).');
     if (pingErr === 'old') add('Notifications', 'Fonction send-push', 'ko', 'Une ancienne version est déployée : recolle le nouveau index.ts dans la fonction et redéploie.');
-    else if (pingErr || !ping) add('Notifications', 'Fonction send-push', 'ko', 'La fonction ne répond pas : vérifie qu\'elle est déployée sous le nom exact send-push, vérification JWT désactivée (étape 3).');
+    else if (pingErr === 'missing') add('Notifications', 'Fonction send-push', 'ko', 'Aucune fonction nommée exactement send-push : vérifie son nom dans Edge Functions (étape 3).');
+    else if (pingErr?.startsWith('http-')) add('Notifications', 'Fonction send-push', 'ko', `La fonction plante (erreur ${pingErr.slice(5)}) : ouvre son onglet Logs. Cause fréquente : secrets VAPID absents ou mal copiés.${pingDetail ? ` Détail : ${pingDetail}` : ''}`);
+    else if (pingErr || !ping) add('Notifications', 'Fonction send-push', 'ko', 'La fonction ne répond pas à l\'appli. Le plus souvent, l\'ancienne version est encore déployée : recolle le nouveau index.ts dans send-push et clique sur Deploy. Sinon, vérifie que son nom est exactement send-push.');
     else {
       add('Notifications', 'Fonction send-push', 'ok', 'Déployée et joignable.');
       add('Notifications', 'Clés VAPID dans les secrets', ping.vapid ? 'ok' : 'ko', ping.vapid ? 'Présentes et valides.' : `Absentes ou invalides (étape 3)${ping.vapidError ? ` : ${ping.vapidError}` : ''}.`);
