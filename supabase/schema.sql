@@ -51,6 +51,10 @@ create table if not exists public.messages (
   created_at  timestamptz not null default now()
 );
 create index if not exists messages_created_at_idx on public.messages (created_at desc);
+-- Liste des pokes autorisés (les anciens restent valides pour les messages déjà envoyés)
+alter table public.messages drop constraint if exists messages_poke_check;
+alter table public.messages add constraint messages_poke_check
+  check (poke in ('pense', 'courage', 'om', 'amuse', 'salut', 'cafe', 'calin', 'bureau'));
 alter table public.messages enable row level security;
 
 -- ---------------------------------------------------------------------
