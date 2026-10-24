@@ -5,7 +5,7 @@
 // =====================================================================
 window.OSCC_CONFIG = {
   // Supabase > Project Settings > API
-  SUPABASE_URL: "https://nkzkzplwitkmwdzxotjj.supabase.co/rest/v1/",                 // ex. "https://abcdefgh.supabase.co"
+  SUPABASE_URL: "https://nkzkzplwitkmwdzxotjj.supabase.co/",                 // ex. "https://abcdefgh.supabase.co"
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5remt6cGx3aXRrbXdkenhvdGpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NTgzNjUsImV4cCI6MjEwODQzNDM2NX0.Wf4YQD9mv_XT7ryQr8A6mIo7LtqFIzW6FrTN4JceB6Q",            // la clé « anon public » (elle peut être publique)
 
   // Clé PUBLIQUE générée avec tools/vapid.html
