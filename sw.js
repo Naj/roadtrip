@@ -1,5 +1,5 @@
-// OS Corsica Connect — service worker : hors-ligne + notifications
-const CACHE = 'oscc-v3';
+// ROADTRIP — service worker : hors-ligne + notifications
+const CACHE = 'roadtrip-v11';
 const SHELL = [
   './', './index.html', './style.css', './app.js', './config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/badge-96.png',
@@ -34,10 +34,10 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('push', (event) => {
   let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch { data = { title: 'OS Corsica Connect', body: event.data?.text() }; }
+  try { data = event.data ? event.data.json() : {}; } catch { data = { title: 'ROADTRIP', body: event.data?.text() }; }
   const urgent = !!data.urgent;
   event.waitUntil(
-    self.registration.showNotification(data.title || 'OS Corsica Connect', {
+    self.registration.showNotification(data.title || 'ROADTRIP', {
       body: data.body || '',
       icon: './icons/icon-192.png',
       badge: './icons/badge-96.png',

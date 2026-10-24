@@ -1,15 +1,19 @@
 // =====================================================================
-//  OS Corsica Connect — réglages
-//  C'est le SEUL fichier à modifier après le déploiement.
-//  Laisse SUPABASE_URL vide pour tester l'appli en mode démo.
+//  ROADTRIP — réglages
+//  C'est le SEUL fichier qui contient tes réglages.
+//  Lors d'une mise à jour, NE REMPLACE JAMAIS ce fichier : garde le tien.
+//  (SUPABASE_URL vide = mode démo.)
 // =====================================================================
 window.OSCC_CONFIG = {
   // Supabase > Project Settings > API
-  SUPABASE_URL: "",                 // ex. "https://abcdefgh.supabase.co"
-  SUPABASE_ANON_KEY: "",            // la clé « anon public » (elle peut être publique)
+  SUPABASE_URL: "https://nkzkzplwitkmwdzxotjj.supabase.co",
+  SUPABASE_ANON_KEY: "",            // À RECOPIER : clé « anon public » (commence par eyJ)
 
   // Clé PUBLIQUE générée avec tools/vapid.html
-  VAPID_PUBLIC_KEY: "",
+  VAPID_PUBLIC_KEY: "",             // À RECOPIER : la même valeur que le secret VAPID_PUBLIC_KEY
+
+  // Fin de l'URL de la fonction d'envoi (Edge Functions > colonne URL, après /functions/v1/)
+  PUSH_FUNCTION: "quick-worker",
 
   // Le voyage
   TRAVELER_NAME: "Antoine",           // prénom du voyageur
