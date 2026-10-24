@@ -10,7 +10,7 @@ window.OSCC_CONFIG = {
 
   // Clé PUBLIQUE générée avec tools/vapid.html
   VAPID_PUBLIC_KEY: "BGTHur24nhP1v8mkdSdCsMQJOg7sUGnckDYvoOay0YCdgaacHinuoqCwJ0zIB0_T4MXm-act_2uHs-JuHoyA4v4",
-
+  PUSH_FUNCTION: "quick-worker",
   // Le voyage
   TRAVELER_NAME: "Antoine",           // prénom du voyageur
   TRIP_START: "2026-11-01",         // date de départ (AAAA-MM-JJ)
