@@ -128,23 +128,44 @@ grant execute on function public.sealed_summary() to authenticated;
 
 -- Rejoindre le groupe avec un code d'invitation et un prénom
 -- Code ADM- : membre du groupe avec les droits d'administration
+-- Le code est lu avec tolérance : minuscules, espaces, tiret oublié, O tapé à la place de 0, I ou L à la place de 1.
+create or replace function public.normalize_code(p_code text)
+returns text language plpgsql immutable as $$
+declare
+  c text := upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z0-9]', '', 'g'));
+  prefix text;
+begin
+  if length(c) < 4 then return c; end if;
+  prefix := translate(left(c, 3), '0', 'O');           -- V0Y -> VOY
+  return prefix || '-' || translate(substr(c, 4), 'OIL', '011');
+end;
+$$;
+
 create or replace function public.join_group(p_code text, p_name text)
 returns text language plpgsql security definer set search_path = public as $$
 declare
+  v_code    text := public.normalize_code(p_code);
   v_role    text;
   v_admin   boolean := false;
-  v_removed timestamptz;
+  v_member  public.members%rowtype;
 begin
   if auth.uid() is null then
     raise exception 'Session absente, recharge la page.';
   end if;
-  select role into v_role from public.invite_codes where code = upper(trim(p_code));
-  if v_role is null then
-    raise exception 'Code d''invitation inconnu.';
+  if coalesce(trim(p_name), '') = '' then
+    raise exception 'Indique ton prénom.';
   end if;
-  select removed_at into v_removed from public.members where id = auth.uid();
-  if v_removed is not null then
+  select role into v_role from public.invite_codes where code = v_code;
+  if v_role is null then
+    raise exception 'Code % inconnu. Vérifie-le auprès de l''organisateur : il a peut-être été changé dans Administration > Codes.', v_code;
+  end if;
+  select * into v_member from public.members where id = auth.uid();
+  if v_member.removed_at is not null then
     raise exception 'Ton accès a été retiré par l''administrateur.';
+  end if;
+  -- Protection : un administrateur ne perd pas ses droits en testant un autre code sur le même téléphone
+  if v_member.is_admin and v_role <> 'admin' then
+    raise exception 'Ce téléphone est déjà inscrit comme administrateur. Pour tester un autre code, utilise un autre navigateur ou fais d''abord « Se déconnecter ».';
   end if;
   if v_role = 'admin' then
     v_admin := true;
